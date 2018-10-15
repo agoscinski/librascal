@@ -1,7 +1,6 @@
 #include "structure_managers/structure_manager_centers.hh"
 #include "structure_managers/adaptor_strict.hh"
 #include "structure_managers/adaptor_increase_maxorder.hh"
-#include "structure_managers/adaptor_neighbour_list.hh"
 #include "basic_types.hh"
 #include <iostream>
 #include <basic_types.hh>
@@ -14,7 +13,7 @@ constexpr static int dim{3};
 using Vector_t = Eigen::Matrix<double, dim, 1>;
 
 int main()
-{
+{   
 
     // Manager_t manager{};
     // Eigen::MatrixXd positions(3,8);
@@ -23,7 +22,7 @@ int main()
     // std::array<int, 3> pbc{{true,true,true}};
     // bool verbose{false};
     // // double cutoff{1.9};
-
+    
     // cell <<
     //     2., 0., 0.,
     //     0., 2., 0.,
@@ -43,7 +42,7 @@ int main()
     std::array<int, 3> pbc{{true,true,true}};
     bool verbose{false};
     // double cutoff{1.9};
-
+         
       cell <<
         6.19, 2.41, 0.21,
         0.00, 6.15, 1.02,
@@ -81,11 +80,10 @@ int main()
                      Eigen::Map<Eigen::Matrix<int, 3, 1>>{pbc.data()});
 
     double cut_off{2.};
-
+    
     int mult{10};
     double rc_max{mult*0.5 + cut_off};
-    rascal::AdaptorNeighbourList<rascal::StructureManagerCenters>
-      pair_manager{manager, rc_max};
+    rascal::AdaptorMaxOrder<rascal::StructureManagerCenters> pair_manager{manager, rc_max };
     pair_manager.update();
 
     for (auto i{0}; i < mult; ++i) {
@@ -95,14 +93,13 @@ int main()
 
       std::vector<std::vector<int>> neigh_ids_strict;
       std::vector<std::vector<double>> neigh_dist_strict;
-
+      
       // rascal::AdaptorMaxOrder<rascal::StructureManagerCenters> pair_manager{manager, cutoff_tmp};
       // pair_manager.update();
       if (verbose) {}
-
+      
       std::cout << "Setting up strict manager with rc="<<cutoff_tmp << std::endl;
-      rascal::AdaptorStrict<
-        rascal::AdaptorNeighbourList<rascal::StructureManagerCenters>>
+      rascal::AdaptorStrict<rascal::AdaptorMaxOrder<rascal::StructureManagerCenters>> 
                                         adaptor_strict{pair_manager, cutoff_tmp};
       adaptor_strict.update();
 
@@ -115,7 +112,7 @@ int main()
 
         if (verbose) {
           std::cout << "strict atom out " << center.get_index(); // get_index returns iteration index
-          std::cout << " " << center.get_atom_index() << " " ; // get_atom_index returns index from
+          std::cout << " " << center.get_atom_index() << " " ; // get_atom_index returns index from        
           for (int ii{0};ii<3;++ii){
             std::cout << center.get_position()[ii] << " ";
           }
@@ -125,21 +122,21 @@ int main()
         for (auto neigh : center) {
           double distance{(center.get_position()
                           - neigh.get_position()).norm()};
-          Nneigh += 1;
+          Nneigh += 1;        
           indices_.push_back(neigh.get_atom_index());
           distances_.push_back(adaptor_strict.get_distance(neigh));
-
+          
           if (verbose) {
               std::cout << "strict neigh out " << neigh.get_index();
               std::cout << " " << neigh.get_atom_index() << "\t " ;
-
+                
               for (int ii{0};ii<3;++ii){
                 std::cout << neigh.get_position()[ii] << ", ";
               }
               std::cout << "\t dist=" << distance;
               std::cout << "\t " << neigh.get_atom_type() << std::endl;
             }
-
+          
         }
 
         std::cout << "Number of Neighbourg: " << Nneigh << std::endl;

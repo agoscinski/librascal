@@ -30,6 +30,9 @@
 
 #include <utility>
 
+#ifndef RASCAL_UTILITY_H
+#define RASCAL_UTILITY_H
+
 namespace rascal {
   namespace internal {
     /* ---------------------------------------------------------------------- */
