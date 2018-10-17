@@ -62,7 +62,7 @@ namespace rascal {
     using traits = StructureManager_traits<StructureManagerLammps>;
     using Parent = StructureManager<StructureManagerLammps>;
     using Vector_ref = typename Parent::Vector_ref;
-    // using AtomRef_t = typename Parent::AtomRef;
+    using AtomRef_t = typename Parent::AtomRef;
     // template <size_t Order>
     // using ClusterRef_t = typename Parent::template ClusterRef<Order>;
 
@@ -139,6 +139,16 @@ namespace rascal {
       return this->get_position(cluster.back());
     }
 
+    //! get atom type
+    inline const int & get_atom_type(const int & atom_index) const {
+      return this->type[atom_index];
+    }
+
+    //! Returns atom type given an atom index
+    inline int & get_atom_type(const int & atom_index) {
+      return this->type[atom_index];
+    }
+
     //! return number of I atoms in the list
     inline size_t get_size() const {
       return this->inum;
@@ -161,7 +171,8 @@ namespace rascal {
                                      & cluster,
                                      size_t index) const {
       static_assert(Order == traits::MaxOrder-1,
-                    "this implementation only handles atoms and identify its index-th neighbour.");
+                    "this implementation only handles atoms and identify its "
+                    "index-th neighbour.");
       auto && i_atom_id{cluster.back()};
       return this->firstneigh[std::move(i_atom_id)][index];
     }

@@ -226,7 +226,7 @@ namespace rascal {
 
     //! Returns the number of neighbors of an atom with the given index
     inline size_t get_cluster_size(const int & atom_index) const {
-        return this->manager.get_cluster_size(atom_index);
+      return this->manager.get_cluster_size(atom_index);
     }
 
   protected:
