@@ -59,6 +59,9 @@ namespace rascal {
     constexpr static bool HasDirectionVectors{
       ManagerImplementation::traits::HasDirectionVectors};
     constexpr static int Dim{ManagerImplementation::traits::Dim};
+    // keep underlying neighbourlist type
+    constexpr static AdaptorTraits::NeighbourListType NeighbourListType{
+      ManagerImplementation::traits::NeighbourListType};
     //! New MaxOrder upon construction!
     constexpr static size_t MaxOrder{ManagerImplementation::traits::MaxOrder+1};
     //! New Layer
