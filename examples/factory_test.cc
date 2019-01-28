@@ -1,3 +1,8 @@
+#include "json_io.hh"
+// #include "type_list.hpp"
+// #include "meta_counter.hpp"
+// #include "meta_list.hpp"
+
 #include <iostream>
 #include <memory>
 #include <string>
@@ -7,7 +12,7 @@
 #include <cxxabi.h>
 #include <regex>
 #include <map>
-
+#include <type_traits>
 
 std::string demangle(const char *name) {
 
@@ -171,6 +176,13 @@ decltype(auto) structure_manager_factory(Arg arg, Args ...args) {
 
 }
 
+
+template<typename T>
+auto get_info() {
+  return typeid(T).name();
+}
+
+
 int main() {
   std::vector<double> vv{};
   vv.push_back(14);
@@ -181,15 +193,11 @@ int main() {
   auto tp = std::make_tuple<double,int>(1.5,10);
   auto tp1 = std::make_tuple<double,int>(1.5,10);
 
-  // auto test = Recursion<Impl1,AdImpl1,AdImpl2,AdImpl2>(manager_base,d,tp,tp1);
 
   auto manager = structure_manager_factory<Impl1,AdImpl1,AdImpl2,AdImpl2>(vv,d,tp,tp1);
-  // auto manager = test.get_manager();
 
-  // std::cout  <<std::endl;
-  // std::cout << manager->get_name() <<std::endl;
 
-  // manager->update(vv);
+
 
   return(0);
 }
