@@ -137,6 +137,11 @@ namespace rascal {
      */
     inline double get_cutoff() const { return this->manager->get_cutoff(); }
 
+    //! check whether neighbours of ghosts were considered
+    inline bool get_consider_ghost_neighbours() const {
+      return this->manager->get_consider_ghost_neighbours();
+    }
+
     //! returns the number of atoms or pairs
     inline size_t get_nb_clusters(int order) const {
       switch (order) {

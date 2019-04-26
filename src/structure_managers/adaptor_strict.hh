@@ -127,6 +127,11 @@ namespace rascal {
     //! returns the (strict) cutoff for the adaptor
     inline const double & get_cutoff() const { return this->cutoff; }
 
+    //! check whether neighbours of ghosts were considered
+    inline bool get_consider_ghost_neighbours() const {
+      return this->manager->get_consider_ghost_neighbours();
+    }
+
     //! returns the distance between atoms in a given pair
     template <size_t Order, size_t Layer>
     inline const double &

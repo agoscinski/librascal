@@ -442,7 +442,7 @@ namespace rascal {
     this->offsets.clear();
     this->neighbours.clear();
 
-    if (not this->manager.get_consider_ghost_neighbours()) {
+    if (not this->manager->get_consider_ghost_neighbours()) {
       std::stringstream err_str{};
       err_str << "Neighbourlist is missing neighbours of ghosts, switch "
                  "consider_ghost_neighbours to `true`"
