@@ -442,6 +442,14 @@ namespace rascal {
     this->offsets.clear();
     this->neighbours.clear();
 
+    if (not this->get_manager()->get_consider_ghost_neighbours()) {
+      std::stringstream err_str{};
+      err_str << "Neighbourlist is missing neighbours of ghosts, switch "
+                 "consider_ghost_neighbours to `true`"
+              << std::endl;
+      throw std::runtime_error(err_str.str());
+    }
+
     for (auto atom : this->manager) {
       //  Order 1, but variable Order is at 0, atoms, index 0
       using AddOrderLoop =
