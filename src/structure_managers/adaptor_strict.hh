@@ -53,6 +53,8 @@ namespace rascal {
     constexpr static bool HasDirectionVectors{true};
     constexpr static int Dim{ManagerImplementation::traits::Dim};
     constexpr static size_t MaxOrder{ManagerImplementation::traits::MaxOrder};
+    constexpr static AdaptorTraits::NeighbourListType NeighbourListType{
+        ManagerImplementation::traits::NeighbourListType};
     using LayerByOrder = typename LayerIncreaser<
         MaxOrder, typename ManagerImplementation::traits::LayerByOrder>::type;
   };
@@ -177,7 +179,11 @@ namespace rascal {
       return this->atom_indices[Order][offset + index];
     }
 
-    //! get atom_index of the index-th atom in manager
+    /* Returns atom index of the index-th atom in manager. Usefull in cases
+     * where the first parameter can be manager or ClusterRef, such that the
+     * above function can be used for ClusterRef objects and this for manager
+     * objects
+     */
     inline int get_cluster_neighbour(const Parent & /*parent*/,
                                      size_t index) const {
       return this->atom_indices[0][index];

@@ -200,6 +200,9 @@ namespace rascal {
     using IndexConstArray =
         Eigen::Map<const Eigen::Matrix<size_t, Layer + 1, 1>>;
     using IndexArray = Eigen::Map<Eigen::Matrix<size_t, Layer + 1, 1>>;
+    // TODO(alex) it is used as size_t to store atom indices in AMO, change
+    // this to be consistent and change this here to size_t because indices can
+    // not be negative
     using AtomIndex_t = std::array<int, Order>;
 
     //! Default constructor
@@ -237,6 +240,12 @@ namespace rascal {
     const int & front() const { return this->atom_indices.front(); }
     //! returns the last atom index in this cluster
     const int & back() const { return this->atom_indices.back(); }
+    /* the internal cluster neighbour is the neighbour which was added as
+     * neighbour in the creation of this cluster
+     */
+    const int & get_internal_cluster_neighbour_index() const {
+      return this->back();
+    }
 
     //! returns the cluster's index, given a specific layer
     inline size_t get_cluster_index(const size_t layer) const {

@@ -249,14 +249,6 @@ namespace rascal {
       return 1;
     }
 
-    //! dummy function, since no neighbours are present her
-    inline int get_cluster_neighbour(const Parent & /*parent*/,
-                                     size_t index) const {
-      // dummy argument is the atom itself, because if does not make sense at
-      // this order
-      return index;
-    }
-
     //! Dummy function, since neighbours are not present at this Order
     template <size_t Order, size_t Layer>
     inline int
@@ -265,6 +257,15 @@ namespace rascal {
       static_assert(Order <= traits::MaxOrder,
                     "this implementation only handles atoms.");
       return 0;
+    }
+
+    /* Returns atom index of the index-th atom in manager. Usefull in cases
+     * where the first parameter can be manager or ClusterRef, such that the
+     * above function can be used for ClusterRef objects and this for manager
+     * objects
+     */
+    inline int get_cluster_neighbour(const Parent &, size_t index) const {
+      return index;
     }
 
     /**

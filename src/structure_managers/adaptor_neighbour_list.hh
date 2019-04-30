@@ -60,6 +60,10 @@ namespace rascal {
     // New MaxOrder upon construction, by construction should be 2
     constexpr static size_t MaxOrder{ManagerImplementation::traits::MaxOrder +
                                      1};
+    // adaptor creates full neighbour list by default
+    // TODO(alex) should this be an option half/full, or done with adaptor?
+    constexpr static AdaptorTraits::NeighbourListType NeighbourListType{
+        AdaptorTraits::NeighbourListType::full};
     // When using periodic boundary conditions, it is possible that atoms are
     // added upon construction of the neighbour list. Therefore the layering
     // sequence is reset: here is layer 0 again.
@@ -730,6 +734,9 @@ namespace rascal {
     std::vector<size_t> nb_neigh{};
 
     //! Stores all neighbours (atomic indices) in a list in sequence of atoms
+    //! {(neigbhour_0_of_atom_0)_index, ...,
+    //!     (neighbour_nb_neigh[0]_of_atom_0)_index,
+    //!     (neighbour_0_of_atom_1)_index, ...}
     std::vector<size_t> neighbours{};
 
     //! Stores the offset for each atom to accessing `neighbours`, this variable

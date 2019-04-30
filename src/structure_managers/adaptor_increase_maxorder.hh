@@ -60,6 +60,16 @@ namespace rascal {
     // New MaxOrder upon construction
     constexpr static size_t MaxOrder{ManagerImplementation::traits::MaxOrder +
                                      1};
+    constexpr static AdaptorTraits::NeighbourListType NeighbourListType{
+        AdaptorTraits::NeighbourListType::half};
+    // TODO(alex) change above to below. Above is done to match the current
+    // behaviour of tests, conflicts currently with ANL inits type full list but
+    // AMO extends with type half list, resolve this when Behler-Parinello
+    // symmetry functions have been implemented
+    //
+    // constexpr static AdaptorTraits::NeighbourListType NeighbourListType{
+    //    ManagerImplementation::traits::NeighbourListType};
+
     // Extend the layer by one with the new MaxOrder
     using LayerByOrder = typename LayerExtender<
         MaxOrder, typename ManagerImplementation::traits::LayerByOrder>::type;
@@ -189,10 +199,7 @@ namespace rascal {
       return this->manager->get_atom_type(atom.get_atom_index());
     }
 
-    /**
-     * Returns the id of the index-th (neighbour) atom of the cluster that is
-     * the full structure/atoms object, i.e. simply the id of the index-th atom
-     */
+    //! get atom_index of the index-th atom in manager
     inline int get_cluster_neighbour(const Parent &, size_t index) const {
       return this->manager->get_cluster_neighbour(*this->manager, index);
     }
@@ -249,12 +256,21 @@ namespace rascal {
 
    protected:
     //! Extends the list containing the number of neighbours with a 0
-    inline void add_entry_number_of_neighbours() {
+    inline void add_new_entry_to_number_of_neighbours() {
       this->nb_neigh.push_back(0);
     }
+    inline void add_new_neighbours_of_cluster(std::vector<size_t> neighbours) {
+      this->nb_neigh.push_back(0);
+      if (neighbours.size() > 0) {
+        for (auto neighbour : neighbours) {
+          this->add_neighbour_to_most_recent_added_cluster(neighbour);
+        }
+      }
+    }
 
-    //! Adds a given atom index as new cluster neighbour
-    inline void add_neighbour_of_cluster(const int atom_index) {
+
+    inline void add_neighbour_to_most_recent_added_cluster(
+        const int atom_index) {
       // adds `atom_index` to neighbours
       this->neighbours.push_back(atom_index);
       // increases the number of neighbours
@@ -277,7 +293,7 @@ namespace rascal {
     ImplementationPtr_t manager;
 
     //! Construct for reaching the MaxOrder and adding neighbours of at MaxOrder
-    template <size_t Order, bool IsDummy>
+    template <size_t Order, bool IsOldMaxOrderReached>
     struct AddOrderLoop;
 
     //! Stores the number of neighbours for every traits::MaxOrder-1-clusters
@@ -319,24 +335,39 @@ namespace rascal {
   }
 
   /* ---------------------------------------------------------------------- */
-  //! structure for static looping up until pair order
+  /* Helper structure to loop through all orders copying the cluster indices
+   * list of each order and creating the new MaxOrder list.
+   */
   template <class ManagerImplementation>
-  template <size_t Order, bool IsDummy>
-  struct AdaptorMaxOrder<ManagerImplementation>::AddOrderLoop {
+  template <size_t Order, bool IsOldMaxOrderReached>
+  struct AdaptorMaxOrder<ManagerImplementation>::AddOrderLoop {};
+
+  /*
+   * Recursion start:
+   * The cluster indices lists of the underlying structure manager are
+   * recursively copied to this new structure manager until the old max order is
+   * reached. Container_t can be StructureManager or ClusterRef.
+   * Order is the order of the container, starting with 0 for a structure
+   * manager and then corresponds to the ClusterRef's order.
+   */
+  template <class ManagerImplementation>
+  template <size_t Order>
+  struct AdaptorMaxOrder<ManagerImplementation>::AddOrderLoop<Order, false> {
     static constexpr int OldMaxOrder{ManagerImplementation::traits::MaxOrder};
     using ClusterRef_t =
         typename ManagerImplementation::template ClusterRef<Order>;
+    using ImplementationPtr_t = std::shared_ptr<ManagerImplementation>;
+    using Container_t =
+        std::conditional_t<Order == 0, ImplementationPtr_t, ClusterRef_t>;
 
     using NextOrderLoop = AddOrderLoop<Order + 1, (Order + 1 == OldMaxOrder)>;
 
-    // do nothing, if MaxOrder is not reached, except call the next order
-    static void loop(ClusterRef_t & cluster,
+    static void loop(Container_t & container,
                      AdaptorMaxOrder<ManagerImplementation> & manager) {
-      for (auto next_cluster : cluster) {
-        auto & next_cluster_indices{std::get<next_cluster.order() - 1>(
-            manager.cluster_indices_container)};
+      for (auto next_cluster : container) {
+        auto & next_cluster_indices{
+            std::get<(Order + 1) - 1>(manager.cluster_indices_container)};
 
-        // keep copying underlying cluster indices, they are not changed
         auto indices{next_cluster.get_cluster_indices()};
         next_cluster_indices.push_back(indices);
 
@@ -345,15 +376,16 @@ namespace rascal {
     }
   };
 
-  /* ---------------------------------------------------------------------- */
   /**
+   * Recursion end: The new cluster indices list of order MaxOrder is created.
    * At desired MaxOrder (plus one), here is where the magic happens and the
    * neighbours of the same order are added as the Order+1.  add check for non
    * half neighbour list.
    *
    * TODO: currently, this implementation is not distinguishing between minimal
    * and full lists. E.g. this has to be adjusted to include both, the i- and
-   * the j-atoms of each pair as an i-atom in a triplet (center).
+   * the j-atoms of each pair as an i-atom in a triplet (center). Should this
+   * adaptor be able to build a half neighbour list from a full neighbour list?
    */
   template <class ManagerImplementation>
   template <size_t Order>
@@ -362,65 +394,186 @@ namespace rascal {
 
     using ClusterRef_t =
         typename ManagerImplementation::template ClusterRef<Order>;
+    using ClusterRefOder1_t =
+        typename ManagerImplementation::template ClusterRef<1>;
 
     using traits = typename AdaptorMaxOrder<ManagerImplementation>::traits;
 
     //! loop through the orders to get to the maximum order, this is agnostic to
-    //! the underlying MaxOrder, just goes to the maximum
+    //! the underlying MaxOrder, just goes to the maximum order
     static void loop(ClusterRef_t & cluster,
                      AdaptorMaxOrder<ManagerImplementation> & manager) {
-      // get all i_atoms to find neighbours to extend the cluster to the next
-      // order
-      auto i_atoms = cluster.get_atom_indices();
+      switch (traits::NeighbourListType) {
+      // make here separation to prevent if statements within loops
+      case AdaptorTraits::NeighbourListType::half:
+        extend_cluster_indices_container_with_half_neighbour_list(cluster,
+                                                                  manager);
+        break;
+      case AdaptorTraits::NeighbourListType::full:
+        extend_cluster_indices_container_with_full_neighbour_list(cluster,
+                                                                  manager);
+        break;
+      default:
+        std::stringstream err_str{};
+        err_str << "Unknown NeighbourListType is used in AdaptorMaxOrder"
+                << std::endl;
+        throw std::runtime_error(err_str.str());
+      }
+    }
 
-      // vector of existing i_atoms in `cluster` to avoid doubling of atoms in
-      // final list
-      std::vector<size_t> current_i_atoms{};
-
-      // a set of new neighbours for the cluster, which will be added to extend
-      // the cluster
-      std::set<size_t> current_j_atoms{};
+    static inline void
+    extend_cluster_indices_container_with_half_neighbour_list(
+        ClusterRef_t & cluster,
+        AdaptorMaxOrder<ManagerImplementation> & manager) {
+      auto atom_indices_of_cluster = cluster.get_atom_indices();
 
       // access to underlying manager for access to atom pairs
-      auto & manager_tmp{cluster.get_manager()};
+      auto & underlying_manager{cluster.get_manager()};
 
-      // add an entry for the current clusters' neighbours
-      manager.add_entry_number_of_neighbours();
+      // a set of new neighbours for the cluster, which will be added to extend
+      // the cluster for new MaxOrder
+      std::set<size_t> atom_indices_in_neighbour_environment_of_cluster{};
 
-      // careful: i_atoms can include ghosts: ghosts have to be ignored, since
-      // they to not have a neighbour list themselves, they are only neighbours
-      for (auto atom_index : i_atoms) {
-        current_i_atoms.push_back(atom_index);
-        size_t access_index =
-            manager.get_cluster_neighbour(manager, atom_index);
-
-        // construct a shifted iterator to constuct a ClusterRef<1>
-        auto iterator_at_position{manager_tmp.get_iterator_at(access_index)};
+      // careful: atom_indices_of_cluster can include ghosts: ghosts have to be
+      // ignored, since they to not have a neighbour list themselves, they are
+      // only neighbours
+      for (auto atom_index : atom_indices_of_cluster) {
+        // TODO(alex) I want to put these 2 lines in a function, but the
+        // something is not correctly moved when using current version
+        auto iterator_at_atom_index{
+            underlying_manager.get_iterator_at(atom_index)};
 
         // ClusterRef<1> as dereference from iterator to get pairs of the
-        // i_atoms
-        auto && j_cluster{*iterator_at_position};
+        // atom_indices_of_cluster
+        ClusterRefOder1_t && atom_at_atom_index{*iterator_at_atom_index};
 
-        // collect all possible neighbours of the cluster: collection of all
-        // neighbours of current_i_atoms
-        for (auto pair : j_cluster) {
-          auto j_add = pair.back();
-          if (j_add > i_atoms.back()) {
-            current_j_atoms.insert(j_add);
-          }
-        }
+        insert_neighbours_of_atom_greater_than_index_into_set(
+            atom_at_atom_index,
+            &atom_indices_in_neighbour_environment_of_cluster,
+            atom_indices_of_cluster.back());
       }
 
-      // delete existing cluster atoms from list to build additional neighbours
-      std::vector<size_t> atoms_to_add{};
-      std::set_difference(current_j_atoms.begin(), current_j_atoms.end(),
-                          current_i_atoms.begin(), current_i_atoms.end(),
-                          std::inserter(atoms_to_add, atoms_to_add.begin()));
+      // to remove cluster's atom indices in the cluster's neighbour environment
+      std::vector<size_t> neighbours_of_cluster{};
+      std::set_difference(
+          atom_indices_in_neighbour_environment_of_cluster.begin(),
+          atom_indices_in_neighbour_environment_of_cluster.end(),
+          atom_indices_of_cluster.begin(), atom_indices_of_cluster.end(),
+          std::inserter(neighbours_of_cluster, neighbours_of_cluster.begin()));
 
-      if (atoms_to_add.size() > 0) {
-        for (auto j : atoms_to_add) {
-          manager.add_neighbour_of_cluster(j);
+      // add an entry for the current clusters' neighbours
+      manager.add_new_neighbours_of_cluster(neighbours_of_cluster);
+    }
+
+
+    static inline void
+    extend_cluster_indices_container_with_half_neighbour_list_for_shared_pointer(
+        ClusterRef_t & cluster,
+        AdaptorMaxOrder<ManagerImplementation> & manager) {
+      auto atom_indices_of_cluster = cluster.get_atom_indices();
+
+      // access to underlying manager for access to atom pairs
+      auto & underlying_manager{cluster.get_manager()};
+
+      // a set of new neighbours for the cluster, which will be added to extend
+      // the cluster for new MaxOrder
+      std::set<size_t> atom_indices_in_neighbour_environment_of_cluster{};
+
+      // careful: atom_indices_of_cluster can include ghosts: ghosts have to be
+      // ignored, since they to not have a neighbour list themselves, they are
+      // only neighbours
+      for (auto atom_index : atom_indices_of_cluster) {
+        auto && atom_at_atom_index{get_atom_at_atom_index_from_manager(
+            underlying_manager, atom_index)};
+        for (auto pair : atom_at_atom_index) {
+          auto neighbour_of_atom_at_atom_access_index =
+              pair.get_internal_cluster_neighbour_index();
+          if (neighbour_of_atom_at_atom_access_index > atom_indices_of_cluster.back()) {
+            atom_indices_in_neighbour_environment_of_cluster.insert(neighbour_of_atom_at_atom_access_index);
+          }
         }
+        //insert_neighbours_of_atom_greater_than_index_into_set(
+        //    atom_at_atom_index,
+        //    &atom_indices_in_neighbour_environment_of_cluster,
+        //    atom_indices_of_cluster.back());
+      }
+
+      // to remove cluster's atom indices in the cluster's neighbour environment
+      std::vector<size_t> neighbours_of_cluster{};
+      std::set_difference(
+          atom_indices_in_neighbour_environment_of_cluster.begin(),
+          atom_indices_in_neighbour_environment_of_cluster.end(),
+          atom_indices_of_cluster.begin(), atom_indices_of_cluster.end(),
+          std::inserter(neighbours_of_cluster, neighbours_of_cluster.begin()));
+
+      // add an entry for the current clusters' neighbours
+      manager.add_new_neighbours_of_cluster(neighbours_of_cluster);
+    }
+
+
+    static inline void
+    extend_cluster_indices_container_with_full_neighbour_list(
+        ClusterRef_t & cluster,
+        AdaptorMaxOrder<ManagerImplementation> & manager) {
+      auto atom_indices_of_cluster = cluster.get_atom_indices();
+
+      // access to underlying manager for access to atom pairs
+      auto & underlying_manager{cluster.get_manager()};
+
+      // a set of new neighbours for the cluster, which will be added to extend
+      // the cluster for new MaxOrder
+      std::set<size_t> atom_indices_in_neighbour_environment_of_cluster{};
+
+      // careful: atom_indices_of_cluster can include ghosts: ghosts have to be
+      // ignored, since they to not have a neighbour list themselves, they are
+      // only neighbours
+      for (auto atom_index : atom_indices_of_cluster) {
+        auto atom_at_atom_index{get_atom_at_atom_index_from_manager(
+            underlying_manager, atom_index)};
+        insert_neighbours_of_atom_into_set(
+            atom_at_atom_index,
+            &atom_indices_in_neighbour_environment_of_cluster);
+      }
+
+      // to remove cluster's atom indices in the cluster's neighbour environment
+      std::vector<size_t> neighbours_of_cluster{};
+      std::set_difference(
+          atom_indices_in_neighbour_environment_of_cluster.begin(),
+          atom_indices_in_neighbour_environment_of_cluster.end(),
+          atom_indices_of_cluster.begin(), atom_indices_of_cluster.end(),
+          std::inserter(neighbours_of_cluster, neighbours_of_cluster.begin()));
+
+      // add an entry for the current clusters' neighbours
+      manager.add_new_neighbours_of_cluster(neighbours_of_cluster);
+    }
+
+    // TODO(alex) this function does not work, should have replaced part of code
+    // as seen in extend_cluster_indices_container_with_full_neighbour_list
+    //
+    static inline ClusterRefOder1_t get_atom_at_atom_index_from_manager(
+        StructureManager<ManagerImplementation> & underlying_manager,
+        size_t atom_index) {
+      return *(underlying_manager.get_iterator_at(atom_index));
+    }
+
+    // pushes the neighbours of the atom to the set
+    static inline void insert_neighbours_of_atom_greater_than_index_into_set(
+        ClusterRefOder1_t & atom, std::set<size_t> * set, int index) {
+      for (auto pair : atom) {
+        auto neighbour_of_atom_at_atom_access_index =
+            pair.get_internal_cluster_neighbour_index();
+        if (neighbour_of_atom_at_atom_access_index > index) {
+          set->insert(neighbour_of_atom_at_atom_access_index);
+        }
+      }
+    }
+    static inline void
+    insert_neighbours_of_atom_into_set(ClusterRefOder1_t & atom,
+                                       std::set<size_t> * set) {
+      for (auto pair : atom) {
+        auto neighbour_of_atom_at_atom_access_index =
+            pair.get_internal_cluster_neighbour_index();
+        set->insert(neighbour_of_atom_at_atom_access_index);
       }
     }
   };
@@ -442,18 +595,7 @@ namespace rascal {
     this->offsets.clear();
     this->neighbours.clear();
 
-    for (auto atom : this->manager) {
-      //  Order 1, but variable Order is at 0, atoms, index 0
-      using AddOrderLoop =
-          AddOrderLoop<atom.order(), atom.order() == (traits::MaxOrder - 1)>;
-
-      auto & atom_cluster_indices{std::get<0>(this->cluster_indices_container)};
-
-      auto indices = atom.get_cluster_indices();
-      atom_cluster_indices.push_back(indices);
-
-      AddOrderLoop::loop(atom, *this);
-    }
+    AddOrderLoop<0, false>::loop(this->manager, *this);
 
     // correct the offsets for the new cluster order
     this->set_offsets();
