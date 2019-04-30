@@ -465,52 +465,6 @@ namespace rascal {
     }
 
     static inline void
-    extend_cluster_indices_container_with_half_neighbour_list_for_shared_pointer(
-        ClusterRef_t & cluster,
-        AdaptorMaxOrder<ManagerImplementation> & manager) {
-      auto atom_indices_of_cluster = cluster.get_atom_indices();
-
-      // access to underlying manager for access to atom pairs
-      auto & underlying_manager{cluster.get_manager()};
-
-      // a set of new neighbours for the cluster, which will be added to extend
-      // the cluster for new MaxOrder
-      std::set<size_t> atom_indices_in_neighbour_environment_of_cluster{};
-
-      // careful: atom_indices_of_cluster can include ghosts: ghosts have to be
-      // ignored, since they to not have a neighbour list themselves, they are
-      // only neighbours
-      for (auto atom_index : atom_indices_of_cluster) {
-        auto && atom_at_atom_index{get_atom_at_atom_index_from_manager(
-            underlying_manager, atom_index)};
-        for (auto pair : atom_at_atom_index) {
-          auto neighbour_of_atom_at_atom_access_index =
-              pair.get_internal_cluster_neighbour_index();
-          if (neighbour_of_atom_at_atom_access_index >
-              atom_indices_of_cluster.back()) {
-            atom_indices_in_neighbour_environment_of_cluster.insert(
-                neighbour_of_atom_at_atom_access_index);
-          }
-        }
-        // insert_neighbours_of_atom_greater_than_index_into_set(
-        //    atom_at_atom_index,
-        //    &atom_indices_in_neighbour_environment_of_cluster,
-        //    atom_indices_of_cluster.back());
-      }
-
-      // to remove cluster's atom indices in the cluster's neighbour environment
-      std::vector<size_t> neighbours_of_cluster{};
-      std::set_difference(
-          atom_indices_in_neighbour_environment_of_cluster.begin(),
-          atom_indices_in_neighbour_environment_of_cluster.end(),
-          atom_indices_of_cluster.begin(), atom_indices_of_cluster.end(),
-          std::inserter(neighbours_of_cluster, neighbours_of_cluster.begin()));
-
-      // add an entry for the current clusters' neighbours
-      manager.add_new_neighbours_of_cluster(neighbours_of_cluster);
-    }
-
-    static inline void
     extend_cluster_indices_container_with_full_neighbour_list(
         ClusterRef_t & cluster,
         AdaptorMaxOrder<ManagerImplementation> & manager) {
