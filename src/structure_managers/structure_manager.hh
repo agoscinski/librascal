@@ -49,6 +49,7 @@
 #include <limits>
 #include <tuple>
 #include <sstream>
+#include <memory>
 
 namespace rascal {
 
@@ -655,6 +656,7 @@ namespace rascal {
     using Atoms_t = std::array<AtomRef_t, Order>;
     using iterator = typename Manager_t::template Iterator<Order + 1>;
     friend iterator;
+    friend typename Manager_t::template Iterator<Order>;
 
     using IndexConstArray_t = typename Parent::IndexConstArray;
     using IndexArray_t = typename Parent::IndexArray;
@@ -662,34 +664,6 @@ namespace rascal {
     //! Default constructor
     ClusterRef() = delete;
 
-    //! ClusterRef for multiple atoms with const IndexArray
-    ClusterRef(Iterator_t & it, const std::array<int, Order> & atom_indices,
-               const IndexConstArray_t & cluster_indices)
-        : Parent{atom_indices, cluster_indices}, it{it} {}
-
-    //! ClusterRef for multiple atoms with non const IndexArray
-    ClusterRef(Iterator_t & it, const std::array<int, Order> & atom_indices,
-               IndexArray_t & cluster_indices)
-        : Parent{atom_indices, IndexConstArray_t(cluster_indices.data())},
-          it{it} {}
-
-    //! ClusterRef for single atom, see `cluster_index`
-    ClusterRef(Iterator_t & it, const std::array<int, Order> & atom_indices,
-               const size_t & cluster_index)
-        :
-
-          Parent{atom_indices, IndexConstArray_t(&cluster_index)}, it{it} {}
-
-    /**
-     * This is a ClusterRef of Order=1, constructed from a higher Order.
-     * This function here is self referencing right now. A ClusterRefKey
-     * with Order=1 is noeeded to construct it ?!
-     */
-    template <bool FirstOrder = (Order == 1)>
-    ClusterRef(std::enable_if_t<FirstOrder, ClusterRefKey<1, 0>> & cluster,
-               Manager_t & manager)
-        : Parent(cluster.get_atom_indices(), cluster.get_cluster_indices()),
-          it(manager) {}
 
     //! Copy constructor
     ClusterRef(const ClusterRef & other) = delete;
@@ -741,15 +715,15 @@ namespace rascal {
     //! since the other ones are accessed an Order above.
     inline int get_atom_index() const { return this->back(); }
     //! returns a reference to the manager with the maximum layer
-    inline Manager_t & get_manager() { return this->it.get_manager(); }
+    inline Manager_t & get_manager() { return this->it.get()->get_manager(); }
 
     //! return a const reference to the manager with maximum layer
     inline const Manager_t & get_manager() const {
-      return this->it.get_manager();
+      return this->it.get()->get_manager();
     }
     //! start of the iteration over the cluster itself
     inline iterator begin() {
-      std::array<size_t, Order> counters{this->it.get_counters()};
+      std::array<size_t, Order> counters{this->it.get()->get_counters()};
       auto offset = this->get_manager().get_offset(counters);
       return iterator(*this, 0, offset);
     }
@@ -761,7 +735,7 @@ namespace rascal {
     inline size_t size() { return this->get_manager().cluster_size(*this); }
     //! return iterator index - this is used in cluster_indices_container as
     //! well as accessing properties
-    inline size_t get_index() const { return this->it.index; }
+    inline size_t get_index() const { return this->it.get()->index; }
     //! returns the clusters index (e.g. the 4-th pair of all pairs in this
     //! iteration)
     inline size_t get_global_index() const {
@@ -772,18 +746,48 @@ namespace rascal {
       return this->atom_indices;
     }
 
-    inline Iterator_t & get_iterator() { return this->it; }
-    inline const Iterator_t & get_iterator() const { return this->it; }
+    inline Iterator_t & get_iterator() { return *(this->it); }
+    inline const Iterator_t & get_iterator() const { return *(this->it); }
 
    protected:
     //! counters for access
     inline std::array<size_t, 1> get_counters() const {
-      return this->it.get_counters();
+      return this->it.get()->get_counters();
     }
     //!`atom_cluster_indices` is an initially contiguous numbering of atoms
-    Iterator_t & it;
+    std::shared_ptr<Iterator_t> it;
 
    private:
+    // Constructor are private so no unshared Iterator_t can be used with this
+    
+    //! ClusterRef for multiple atoms with const IndexArray
+    ClusterRef(std::shared_ptr<Iterator_t> it, const std::array<int, Order> & atom_indices,
+               const IndexConstArray_t & cluster_indices)
+        : Parent{atom_indices, cluster_indices}, it{it} {}
+
+    //! ClusterRef for multiple atoms with non const IndexArray
+    ClusterRef(std::shared_ptr<Iterator_t> it, const std::array<int, Order> & atom_indices,
+               IndexArray_t & cluster_indices)
+        : Parent{atom_indices, IndexConstArray_t(cluster_indices.data())},
+          it{it} {}
+
+    //! ClusterRef for single atom, see `cluster_index`
+    ClusterRef(std::shared_ptr<Iterator_t> it, const std::array<int, Order> & atom_indices,
+               const size_t & cluster_index)
+        :
+
+          Parent{atom_indices, IndexConstArray_t(&cluster_index)}, it{it} {}
+
+    /**
+     * This is a ClusterRef of Order=1, constructed from a higher Order.
+     * This function here is self referencing right now. A ClusterRefKey
+     * with Order=1 is noeeded to construct it ?!
+     */
+    template <bool FirstOrder = (Order == 1)>
+    ClusterRef(std::enable_if_t<FirstOrder, ClusterRefKey<1, 0>> & cluster,
+               Manager_t & manager)
+        : Parent(cluster.get_atom_indices(), cluster.get_cluster_indices()),
+          it(manager) {}
   };
 
   namespace internal {
@@ -839,7 +843,7 @@ namespace rascal {
    */
   template <class ManagerImplementation>
   template <size_t Order>
-  class StructureManager<ManagerImplementation>::Iterator {
+  class StructureManager<ManagerImplementation>::Iterator : public std::enable_shared_from_this<typename StructureManager<ManagerImplementation>:: template Iterator<Order>> {
    public:
     using Manager_t = StructureManager<ManagerImplementation>;
     friend Manager_t;
@@ -902,7 +906,7 @@ namespace rascal {
           cluster_indices_properties)>::reference;
       Ref_t cluster_indices =
           cluster_indices_properties[this->get_cluster_index()];
-      return ClusterRef_t(*this, this->get_atom_indices(), cluster_indices);
+      return ClusterRef_t(std::enable_shared_from_this<Iterator>::shared_from_this(), this->get_atom_indices(), cluster_indices);
     }
 
     //! dereference: calculate cluster indices
@@ -914,8 +918,19 @@ namespace rascal {
       Ref_t cluster_indices =
           cluster_indices_properties[this->get_cluster_index()];
       const auto indices{this->get_atom_indices()};
-      return ClusterRef_t(const_cast<Iterator &>(*this), indices,
+      return ClusterRef_t(const_cast<std::shared_ptr<Iterator>>(std::enable_shared_from_this<Iterator>::shared_from_this()), indices,
                           cluster_indices);
+    }
+
+    //! returns the cluster ref the index is pointing to
+    inline value_type get_current_cluster_ref() {
+      auto & cluster_indices_properties = std::get<Order - 1>(
+          this->get_manager().get_cluster_indices_container());
+      using Ref_t = typename std::remove_reference_t<decltype(
+          cluster_indices_properties)>::reference;
+      Ref_t cluster_indices =
+          cluster_indices_properties[this->get_cluster_index()];
+      return ClusterRef_t(std::enable_shared_from_this<Iterator>::shared_from_this(), this->get_atom_indices(), cluster_indices);
     }
 
     //! equality
