@@ -481,8 +481,9 @@ namespace rascal {
       // ignored, since they to not have a neighbour list themselves, they are
       // only neighbours
       for (auto atom_index : atom_indices_of_cluster) {
-        auto atom_at_atom_index{get_atom_at_atom_index_from_manager(
-            underlying_manager, atom_index)};
+        auto iterator_at_atom_index{
+            underlying_manager.get_iterator_at(atom_index)};
+        ClusterRefOder1_t && atom_at_atom_index{*iterator_at_atom_index};
         insert_neighbours_of_atom_into_set(
             atom_at_atom_index,
             &atom_indices_in_neighbour_environment_of_cluster);
