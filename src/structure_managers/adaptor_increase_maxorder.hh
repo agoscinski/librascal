@@ -268,9 +268,8 @@ namespace rascal {
       }
     }
 
-
-    inline void add_neighbour_to_most_recent_added_cluster(
-        const int atom_index) {
+    inline void
+    add_neighbour_to_most_recent_added_cluster(const int atom_index) {
       // adds `atom_index` to neighbours
       this->neighbours.push_back(atom_index);
       // increases the number of neighbours
@@ -465,7 +464,6 @@ namespace rascal {
       manager.add_new_neighbours_of_cluster(neighbours_of_cluster);
     }
 
-
     static inline void
     extend_cluster_indices_container_with_half_neighbour_list_for_shared_pointer(
         ClusterRef_t & cluster,
@@ -488,11 +486,13 @@ namespace rascal {
         for (auto pair : atom_at_atom_index) {
           auto neighbour_of_atom_at_atom_access_index =
               pair.get_internal_cluster_neighbour_index();
-          if (neighbour_of_atom_at_atom_access_index > atom_indices_of_cluster.back()) {
-            atom_indices_in_neighbour_environment_of_cluster.insert(neighbour_of_atom_at_atom_access_index);
+          if (neighbour_of_atom_at_atom_access_index >
+              atom_indices_of_cluster.back()) {
+            atom_indices_in_neighbour_environment_of_cluster.insert(
+                neighbour_of_atom_at_atom_access_index);
           }
         }
-        //insert_neighbours_of_atom_greater_than_index_into_set(
+        // insert_neighbours_of_atom_greater_than_index_into_set(
         //    atom_at_atom_index,
         //    &atom_indices_in_neighbour_environment_of_cluster,
         //    atom_indices_of_cluster.back());
@@ -509,7 +509,6 @@ namespace rascal {
       // add an entry for the current clusters' neighbours
       manager.add_new_neighbours_of_cluster(neighbours_of_cluster);
     }
-
 
     static inline void
     extend_cluster_indices_container_with_full_neighbour_list(
