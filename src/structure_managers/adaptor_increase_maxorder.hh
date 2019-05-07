@@ -40,7 +40,15 @@
 #include <set>
 #include <vector>
 
+
 namespace rascal {
+  namespace internal {
+    
+    template <typename T>
+    constexpr T nb_distances(T order) {
+      return (order*(order-1))/2;
+    }
+  }
   /**
    * Forward declaration for traits
    */
@@ -162,6 +170,44 @@ namespace rascal {
     template <size_t Order>
     inline size_t
     get_offset_impl(const std::array<size_t, Order> & counters) const;
+
+
+    //! returns the distance between atoms in a given pair
+
+    template <size_t Order, size_t Layer>
+    inline const std::conditional_t<Order == 2, double,
+                           std::array<double, internal::nb_distances(Order)>> &
+    get_distance(const ClusterRefKey<Order, Layer> & cluster) {
+      if(traits::HasDistances) {
+        if (traits::MaxOrder > Order) {
+          return this->manager->get_distance(cluster);
+        } 
+        return get_distances(cluster);
+      } 
+      throw std::runtime_error("Access on distance"
+                               " without underlying AdaptorFilter "
+                               " with distance property.");        
+    }
+    // 1. get_iterator_at_pair_index (the the atom indices the cluster
+    // 2. get all pairs from an array<size_t,..>
+    template <size_t Order, size_t Layer>
+    const inline std::conditional_t<Order == 2, double,
+           std::array<double, internal::nb_distances(Order)>> &
+      get_distances(const ClusterRefKey<Order, Layer> & cluster) {
+      const size_t nb_distances = internal::nb_distances(Order);
+      std::conditional_t<Order == 2, double,
+           std::array<double, nb_distances>> distances[nb_distances];
+      size_t distances_index{0};
+      auto & root_manager{cluster.get_manager()};
+      for (auto atom_index : cluster.get_atom_indices()) {
+        auto && iterator_at_atom_index{root_manager->get_iterator_at(atom_index)};
+        auto atom_at_atom_index{*iterator_at_atom_index};
+        for (auto pair : atom_at_atom_index) {
+          distances.at(distances_index) = this->get_distance(pair);
+        }
+      }
+      return distances;
+    }
 
     //! Returns the number of clusters of size cluster_size
     inline size_t get_nb_clusters(size_t order) const {
@@ -429,8 +475,8 @@ namespace rascal {
         AdaptorMaxOrder<ManagerImplementation> & manager) {
       auto atom_indices_of_cluster = cluster.get_atom_indices();
 
-      // access to underlying manager for access to atom pairs
-      auto & underlying_manager{cluster.get_manager()};
+      // access to root manager for access to atom pairs
+      auto & root_manager{cluster.get_manager()};
 
       // a set of new neighbours for the cluster, which will be added to extend
       // the cluster for new MaxOrder
@@ -442,7 +488,7 @@ namespace rascal {
       insert_neighbours_of_atom_indices<traits_strict_t>(
             atom_indices_of_cluster,
             atom_indices_in_neighbour_environment_of_cluster,
-            underlying_manager);
+            root_manager);
 
       // to remove cluster's atom indices in the cluster's neighbour environment
       std::vector<size_t> neighbours_of_cluster{};
