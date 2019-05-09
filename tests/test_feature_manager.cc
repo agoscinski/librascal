@@ -123,10 +123,10 @@ namespace rascal {
 
   using multiple_fixtures_sparse = boost::mpl::list<
       SparseFeatureFixture<double, FeatureManagerBlockSparse,
-                           RepresentationManagerSphericalExpansion,
+                           RepresentationManagerSphericalGTOExpansion,
                            MultipleStructureSphericalExpansion>,
       SparseFeatureFixture<float, FeatureManagerBlockSparse,
-                           RepresentationManagerSphericalExpansion,
+                           RepresentationManagerSphericalGTOExpansion,
                            MultipleStructureSphericalExpansion>>;
 
   /* ---------------------------------------------------------------------- */

@@ -87,7 +87,7 @@ namespace rascal {
       RepresentationFixture<MultipleStructureSortedCoulomb,
                             RepresentationManagerSortedCoulomb>,
       RepresentationFixture<MultipleStructureSphericalExpansion,
-                            RepresentationManagerSphericalExpansion>,
+                            RepresentationManagerSphericalGTOExpansion>,
       RepresentationFixture<MultipleStructureSOAP, RepresentationManagerSOAP>>;
 
   using fixtures_ref_test = boost::mpl::list<RepresentationFixture<
@@ -185,7 +185,7 @@ namespace rascal {
 
   using fixtures_ref_test = boost::mpl::list<
       RepresentationFixture<SphericalExpansionTestData,
-                            RepresentationManagerSphericalExpansion>,
+                            RepresentationManagerSphericalGTOExpansion>,
       RepresentationFixture<SOAPTestData, RepresentationManagerSOAP>>;
 
   /*

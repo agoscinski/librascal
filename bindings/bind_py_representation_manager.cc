@@ -80,7 +80,8 @@ void add_representation_managers(py::module & mod, py::module & m_throwaway) {
   auto rep_sorted_coulomb =
       add_representation_manager<Representation1_t>(mod, m_throwaway);
   /*-------------------- rep-bind-end --------------------*/
-  using Representation2_t = RepresentationManagerSphericalExpansion<Manager_t>;
+  using Representation2_t =
+    RepresentationManagerSphericalGTOExpansion<Manager_t>;
   auto rep_spherical_expansion =
       add_representation_manager<Representation2_t>(mod, m_throwaway);
 

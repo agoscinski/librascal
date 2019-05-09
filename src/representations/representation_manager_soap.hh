@@ -32,7 +32,7 @@
 #define SRC_REPRESENTATIONS_REPRESENTATION_MANAGER_SOAP_HH_
 
 #include "representations/representation_manager_base.hh"
-#include "representations/representation_manager_spherical_expansion.hh"
+#include "representations/representation_manager_spherical_gto_expansion.hh"
 #include "structure_managers/structure_manager.hh"
 #include "structure_managers/property.hh"
 #include "structure_managers/property_block_sparse.hh"
@@ -132,7 +132,7 @@ namespace rascal {
     size_t max_radial{};
     size_t max_angular{};
     ManagerPtr_t structure_manager;
-    RepresentationManagerSphericalExpansion<Manager_t> rep_expansion;
+    RepresentationManagerSphericalGTOExpansion<Manager_t> rep_expansion;
     internal::SOAPType soap_type{};
     std::string soap_type_str{};
     std::vector<Precision_t> dummy{};

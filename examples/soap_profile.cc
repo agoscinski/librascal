@@ -31,7 +31,7 @@
 #include "structure_managers/make_structure_manager.hh"
 #include "rascal_utility.hh"
 #include "representations/representation_manager_sorted_coulomb.hh"
-#include "representations/representation_manager_spherical_expansion.hh"
+#include "representations/representation_manager_spherical_gto_expansion.hh"
 #include "representations/representation_manager_soap.hh"
 #include "representations/feature_manager_dense.hh"
 #include "basic_types.hh"
