@@ -56,7 +56,7 @@ namespace rascal {
      * List of possible Radial basis that can be used by the spherical
      * expansion.
      */
-    enum class RadialBasisType { GTO, End_ };
+    enum class RadialBasisType { GTO, DVR, End_ };
 
     /**
      * List of possible atomic smearing for the definition of the atomic
@@ -453,6 +453,127 @@ namespace rascal {
       Vector_t radial_norm_factors{};
       Vector_t radial_n_factors{};
       Matrix_t radial_ortho_matrix{};
+    };
+
+
+    /**
+     * Implementation of the radial contribution for DVR
+     */
+    template <>
+    struct RadialContribution<RadialBasisType::DVR> : RadialContributionBase {
+      //! Constructor
+      explicit RadialContribution(const Hypers_t & hypers) {
+        this->set_hyperparameters(hypers);
+        this->precompute();
+      }
+      //! Destructor
+      virtual ~RadialContribution() = default;
+      //! Copy constructor
+      RadialContribution(const RadialContribution & other) = delete;
+      //! Move constructor
+      RadialContribution(RadialContribution && other) = default;
+      //! Copy assignment operator
+      RadialContribution & operator=(const RadialContribution & other) = delete;
+      //! Move assignment operator
+      RadialContribution & operator=(RadialContribution && other) = default;
+
+      using Parent = RadialContributionBase;
+      using Hypers_t = typename Parent::Hypers_t;
+      using Matrix_t = typename Parent::Matrix_t;
+      using Vector_t = typename Parent::Vector_t;
+      using Matrix_Ref = typename Parent::Matrix_Ref;
+      using Vector_Ref = typename Parent::Vector_Ref;
+
+      /**
+       * Set hyperparameters.
+       * @params hypers is expected to be the same as the the input of
+       *         the spherical expansion
+       */
+      void set_hyperparameters(const Hypers_t & hypers) {
+        this->hypers = hypers;
+
+        this->max_radial = hypers.at("max_radial");
+        this->max_angular = hypers.at("max_angular");
+
+        // init size of the member data
+        // both precomputed quantities and actual expansion coefficients
+        this->legendre_weights.resize(this->max_radial);
+        this->legendre_points.resize(this->max_radial);
+
+        this->radial_integral_neighbour.resize(this->max_radial,
+                                               this->max_angular + 1);
+        this->radial_integral_center.resize(this->max_radial);
+
+        // find the cutoff radius of the representation
+        auto fc_hypers = hypers.at("cutoff_function").get<json>();
+        this->interaction_cutoff =
+            fc_hypers.at("cutoff").at("value").get<double>();
+
+        // define the type of smearing to use
+        auto smearing_hypers = hypers.at("gaussian_density").get<json>();
+        auto smearing_type = smearing_hypers.at("type").get<std::string>();
+        if (smearing_type.compare("Constant") == 0) {
+          this->atomic_smearing_type = AtomicSmearingType::Constant;
+          this->atomic_smearing =
+              make_atomic_smearing<AtomicSmearingType::Constant>(
+                  smearing_hypers);
+        } else {
+          throw std::logic_error(
+              "Requested Gaussian sigma type \'" + smearing_type +
+              "\' has not been implemented.  Must be one of" +
+              ": \'Constant\'.");
+        }
+      }
+
+      void precompute() {
+
+      }
+
+      //! define the contribution from the central atom to the expansion
+      template <AtomicSmearingType AST, size_t Order, size_t Layer>
+      Vector_Ref
+      compute_center_contribution(ClusterRefKey<Order, Layer> & center) {
+        using math::PI;
+        using math::pow;
+        using std::sqrt;
+
+        auto smearing{downcast_atomic_smearing<AST>(this->atomic_smearing)};
+
+        // a = 1 / (2*\sigma^2)
+        double fac_a{0.5 * pow(smearing->get_gaussian_sigma(center), -2)};
+
+
+      }
+
+      //! define the contribution from a neighbour atom to the expansion
+      template <AtomicSmearingType AST, size_t Order, size_t Layer>
+      Matrix_Ref
+      compute_neighbour_contribution(const double & distance,
+                                     ClusterRefKey<Order, Layer> & pair) {
+        using math::PI;
+        using math::pow;
+        using std::sqrt;
+
+
+      }
+
+
+
+      std::shared_ptr<AtomicSmearingSpecificationBase> atomic_smearing{};
+      AtomicSmearingType atomic_smearing_type{};
+
+      // data member used to store the contributions to the expansion
+      Matrix_t radial_integral_neighbour{};
+      Vector_t radial_integral_center{};
+
+      Hypers_t hypers{};
+      // some
+      double interaction_cutoff{};
+      size_t max_radial{};
+      size_t max_angular{};
+
+      Vector_t legendre_weights{};
+      Vector_t legendre_points{};
     };
 
   }  // namespace internal
