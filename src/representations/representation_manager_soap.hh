@@ -45,6 +45,7 @@
 #include <vector>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
+#include <unordered_set>
 
 namespace rascal {
 
@@ -88,12 +89,16 @@ namespace rascal {
     void set_hyperparameters(const Hypers_t & hypers) {
       this->max_radial = hypers.at("max_radial");
       this->max_angular = hypers.at("max_angular");
+      this->normalize = hypers.at("normalize").get<bool>();
       this->soap_type_str = hypers.at("soap_type").get<std::string>();
 
       if (this->soap_type_str.compare("PowerSpectrum") == 0) {
         this->soap_type = internal::SOAPType::PowerSpectrum;
       } else if (this->soap_type_str.compare("RadialSpectrum") == 0) {
         this->soap_type = internal::SOAPType::RadialSpectrum;
+        if (this->max_angular > 0) {
+          throw std::logic_error("max_angular should be 0 with RadialSpectrum");
+        }
       } else {
         throw std::logic_error("Requested SOAP type \'" + this->soap_type_str +
                                "\' has not been implemented.  Must be one of" +
@@ -131,6 +136,7 @@ namespace rascal {
    protected:
     size_t max_radial{};
     size_t max_angular{};
+    bool normalize{};
     ManagerPtr_t structure_manager;
     RepresentationManagerSphericalExpansion<Manager_t> rep_expansion;
     internal::SOAPType soap_type{};
@@ -193,14 +199,16 @@ namespace rascal {
 
     }
 
-  *///////////////////////////////////////////////////////////////////////////////
+  */  //////////////////////////////////////////////////////////////////////////////
 
   template <class Mngr>
   void RepresentationManagerSOAP<Mngr>::compute_powerspectrum() {
+    using math::pow;
+    // Compute the spherical expansions of the current structure
     rep_expansion.compute();
     auto & expansions_coefficients{rep_expansion.expansions_coefficients};
 
-    size_t n_row{(size_t)pow(this->max_radial, 2)};
+    size_t n_row{static_cast<size_t>(pow(this->max_radial, 2))};
     size_t n_col{this->max_angular + 1};
 
     this->soap_vectors.clear();
@@ -212,6 +220,22 @@ namespace rascal {
       auto & soap_vector{this->soap_vectors[center]};
       Key_t pair_type{0, 0};
 
+      std::unordered_set<Key_t, internal::Hash<Key_t>> pair_list{};
+      auto & center_type{center.get_atom_type()};
+      pair_list.insert({center_type, center_type});
+      for (auto neigh1 : center) {
+        auto && neigh1_type{neigh1.get_atom_type()};
+        pair_list.insert({center_type, neigh1_type});
+        for (auto neigh2 : center) {
+          auto && neigh2_type{neigh2.get_atom_type()};
+          if (neigh1_type <= neigh2_type) {
+            pair_list.insert({neigh1_type, neigh2_type});
+          }
+        }
+      }
+      // initialize the power spectrum to 0 with the proper dimension
+      soap_vector.resize(pair_list, n_row, n_col);
+
       for (const auto & el1 : coefficients) {
         pair_type[0] = el1.first[0];
         auto & coef1{el1.second};
@@ -220,25 +244,50 @@ namespace rascal {
           auto & coef2{el2.second};
           /* avoid computing p^{ab} and p^{ba} since p^{ab} = p^{ba}^T
            */
-          if (soap_vector.count(pair_type) == 0) {
-            soap_vector[pair_type] = Dense_t::Zero(n_row, n_col);
-            size_t nn{0};
-            for (size_t n1 = 0; n1 < this->max_radial; n1++) {
-              for (size_t n2 = 0; n2 < this->max_radial; n2++) {
-                size_t lm{0};
-                for (size_t l = 0; l < this->max_angular + 1; l++) {
-                  // TODO(andrea) pre compute l_factor
-                  double l_factor{1 / std::sqrt(2 * l + 1)};
-                  for (size_t m = 0; m < 2 * l + 1; m++) {
-                    soap_vector[pair_type](nn, l) +=
-                        l_factor * coef1(n1, lm) * coef2(n2, lm);
-                    lm++;
-                  }
+          if (pair_type[0] > pair_type[1]) {
+            continue;
+          }
+
+          auto && soap_vector_by_pair{soap_vector[pair_type]};
+
+          size_t lm{0};
+          for (size_t l = 0; l < this->max_angular + 1; l++) {
+            double l_factor{pow(std::sqrt(2 * l + 1), -1)};
+            for (size_t m = 0; m < 2 * l + 1; m++) {
+              size_t nn{0};
+              for (size_t n1 = 0; n1 < this->max_radial; n1++) {
+                for (size_t n2 = 0; n2 < this->max_radial; n2++) {
+                  double val{l_factor * coef1(n1, lm) * coef2(n2, lm)};
+                  soap_vector_by_pair(nn, l) += val;
+                  nn++;
                 }
-                nn++;
               }
+              lm++;
             }
           }
+        }
+      }
+
+      // the SQRT_TWO factor comes from the fact that
+      // the upper diagonal of the species is not considered
+      for (const auto & el : soap_vector) {
+        auto && pair_type{el.first};
+        if (pair_type[0] != pair_type[1]) {
+          soap_vector[pair_type] *= math::SQRT_TWO;
+        }
+      }
+
+      // normalize the soap vector
+      if (this->normalize) {
+        double norm{0.};
+        for (const auto & el : soap_vector) {
+          auto && pair_type{el.first};
+          norm += soap_vector[pair_type].squaredNorm();
+        }
+        norm = std::sqrt(norm);
+        for (const auto & el : soap_vector) {
+          auto && pair_type{el.first};
+          soap_vector[pair_type] /= norm;
         }
       }
     }
@@ -260,11 +309,33 @@ namespace rascal {
       auto & coefficients{expansions_coefficients[center]};
       auto & soap_vector{this->soap_vectors[center]};
       Key_t element_type{0};
+
+      std::unordered_set<Key_t, internal::Hash<Key_t>> keys{};
+      for (auto neigh : center) {
+        keys.insert({neigh.get_atom_type()});
+      }
+      keys.insert({center.get_atom_type()});
+      // initialize the radial spectrum to 0 and the proper size
+      soap_vector.resize(keys, n_row, n_col);
+
+      std::vector<Key_t> element_list{};
       for (const auto & el : coefficients) {
         element_type[0] = el.first[0];
-        soap_vector[element_type] = Dense_t::Zero(n_row, n_col);
         auto & coef{el.second};
         soap_vector[element_type] += coef;
+        element_list.push_back(element_type);
+      }
+
+      // normalize the soap vector
+      if (this->normalize) {
+        double norm{0.};
+        for (const auto & element_type : element_list) {
+          norm += soap_vector[element_type].squaredNorm();
+        }
+        norm = std::sqrt(norm);
+        for (const auto & element_type : element_list) {
+          soap_vector[element_type] /= norm;
+        }
       }
     }
   }
