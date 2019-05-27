@@ -1,5 +1,5 @@
 /**
- * file   representation_manager_spherical_gto_expansion.hh
+ * file   representation_manager_spherical_expansion.hh
  *
  * @author Max Veit <max.veit@epfl.ch>
  * @author Felix Musil <felix.musil@epfl.ch>
@@ -7,8 +7,7 @@
  *
  * @date   19 October 2018
  *
- * @brief  Expand the atom neighbour density in spherical harmonics and GTOs
- *         (GTOs = Gaussian-type orbitals, a radial basis)
+ * @brief  Compute the spherical harmonics expansion of the local atom density
  *
  * Copyright © 2018 Max Veit, Felix Musil, COSMO (EPFL), LAMMM (EPFL)
  *
@@ -28,8 +27,8 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#ifndef SRC_REPRESENTATIONS_REPRESENTATION_MANAGER_SPHERICAL_GTO_EXPANSION_HH_
-#define SRC_REPRESENTATIONS_REPRESENTATION_MANAGER_SPHERICAL_GTO_EXPANSION_HH_
+#ifndef SRC_REPRESENTATIONS_REPRESENTATION_MANAGER_SPHERICAL_EXPANSION_HH_
+#define SRC_REPRESENTATIONS_REPRESENTATION_MANAGER_SPHERICAL_EXPANSION_HH_
 
 #include "representations/representation_manager_base.hh"
 #include "structure_managers/structure_manager.hh"
@@ -116,13 +115,13 @@ namespace rascal {
    * The local environment of each atom is represented by Gaussians of a
    * certain width (user-defined; can be constant, species-dependent, or
    * radially dependent).  This density field is expanded in an angular basis
-   * of spherical harmonics (à la SOAP) and a radial basis of Gaussian-type
-   * orbitals (again, as in SOAP -- just sum over the m values to get the
-   * standard scalar SOAP power spectrum)
+   * of spherical harmonics (à la SOAP) and a radial basis of either Gaussians
+   * (again, as in SOAP) or one of the more recent bases currently under
+   * development.
    */
 
   template <class StructureManager>
-  class RepresentationManagerSphericalGTOExpansion
+  class RepresentationManagerSphericalExpansion
       : public RepresentationManagerBase {
    public:
     using Parent = RepresentationManagerBase;
@@ -182,31 +181,30 @@ namespace rascal {
      * @throw logic_error if an invalid option or combination of options is
      *                    specified in the container
      */
-    RepresentationManagerSphericalGTOExpansion(ManagerPtr_t sm,
+    RepresentationManagerSphericalExpansion(ManagerPtr_t sm,
                                             const Hypers_t & hyper)
         : expansions_coefficients{*sm}, structure_manager{std::move(sm)} {
       this->set_hyperparameters(hyper);
     }
 
     //! Copy constructor
-    RepresentationManagerSphericalGTOExpansion(
-        const RepresentationManagerSphericalGTOExpansion & other) = delete;
+    RepresentationManagerSphericalExpansion(
+        const RepresentationManagerSphericalExpansion & other) = delete;
 
     //! Move constructor
-    RepresentationManagerSphericalGTOExpansion(
-        RepresentationManagerSphericalGTOExpansion && other) = default;
+    RepresentationManagerSphericalExpansion(
+        RepresentationManagerSphericalExpansion && other) = default;
 
     //! Destructor
-    virtual ~RepresentationManagerSphericalGTOExpansion() = default;
+    virtual ~RepresentationManagerSphericalExpansion() = default;
 
     //! Copy assignment operator
-    RepresentationManagerSphericalGTOExpansion &
-    operator=(const RepresentationManagerSphericalGTOExpansion & other)
-                                                                    = delete;
+    RepresentationManagerSphericalExpansion &
+    operator=(const RepresentationManagerSphericalExpansion & other) = delete;
 
     //! Move assignment operator
-    RepresentationManagerSphericalGTOExpansion &
-    operator=(RepresentationManagerSphericalGTOExpansion && other) = default;
+    RepresentationManagerSphericalExpansion &
+    operator=(RepresentationManagerSphericalExpansion && other) = default;
 
     //! compute representation
     void compute();
@@ -281,6 +279,7 @@ namespace rascal {
     size_t max_angular{};
     size_t n_species{};
     std::string gaussian_sigma_str{};
+    // TODO(max-veit) these are specific to the radial Gaussian basis
     Eigen::VectorXd radial_sigmas{};
     // b = 1 / (2*\sigma_n^2)
     Eigen::VectorXd fac_b{};
@@ -300,8 +299,8 @@ namespace rascal {
 
   /** Compute common prefactors for the radial Gaussian basis functions */
   template <class Mngr>
-  void RepresentationManagerSphericalGTOExpansion<Mngr>::
-      precompute_radial_sigmas() {
+  void
+  RepresentationManagerSphericalExpansion<Mngr>::precompute_radial_sigmas() {
     using std::pow;
 
     for (size_t radial_n{0}; radial_n < this->max_radial; ++radial_n) {
@@ -331,8 +330,8 @@ namespace rascal {
    * @throw runtime_error if the overlap matrix cannot be diagonalized
    */
   template <class Mngr>
-  void RepresentationManagerSphericalGTOExpansion<Mngr>::
-      precompute_radial_overlap() {
+  void
+  RepresentationManagerSphericalExpansion<Mngr>::precompute_radial_overlap() {
     using std::pow;
     using std::sqrt;
     using std::tgamma;
@@ -383,7 +382,7 @@ namespace rascal {
    * @throw runtime_error if the overlap matrix cannot be diagonalized
    */
   template <class Mngr>
-  void RepresentationManagerSphericalGTOExpansion<Mngr>::precompute() {
+  void RepresentationManagerSphericalExpansion<Mngr>::precompute() {
     this->precompute_radial_sigmas();
     this->precompute_radial_overlap();
     // Only if none of the above failed (threw exceptions)
@@ -391,7 +390,7 @@ namespace rascal {
   }
 
   template <class Mngr>
-  void RepresentationManagerSphericalGTOExpansion<Mngr>::compute() {
+  void RepresentationManagerSphericalExpansion<Mngr>::compute() {
     using internal::GaussianSigmaType;
     switch (this->gaussian_sigma_type) {
     case GaussianSigmaType::Constant:
@@ -417,8 +416,7 @@ namespace rascal {
   template <class Mngr>
   template <internal::GaussianSigmaType SigmaType>
   void
-  RepresentationManagerSphericalGTOExpansion<Mngr>::
-      compute_by_gaussian_sigma() {
+  RepresentationManagerSphericalExpansion<Mngr>::compute_by_gaussian_sigma() {
     using math::PI;
     using std::pow;
 
@@ -457,7 +455,9 @@ namespace rascal {
 
       // a = 1 / (2*\sigma^2)
       double fac_a{0.5 * pow(gaussian_spec.get_gaussian_sigma(center), -2)};
-      // TODO(max-veit) And ditto on the gamma functions (potential overflow)
+      // TODO(max-veit) this is specific to the Gaussian radial basis
+      // (along with the matching computation below)
+      // And ditto on the gamma functions (potential overflow)
 
       // Contribution from the central atom
       // Y_l^m(θ, φ) =  √((2l+1)/(4*π))) \delta_{m0} and
@@ -483,6 +483,10 @@ namespace rascal {
             math::compute_spherical_harmonics(direction, this->max_angular);
 
         for (size_t radial_n{0}; radial_n < this->max_radial; radial_n++) {
+          // TODO(max-veit) this is all specific to the Gaussian radial basis
+          // (doing just the angular integration would instead spit out
+          // spherical Bessel functions below)
+
           double radial_sigma_factors{pow(fac_a, 2) /
                                       (fac_a + this->fac_b[radial_n])};
           for (size_t angular_l{0}; angular_l < this->max_angular + 1;
@@ -519,4 +523,4 @@ namespace rascal {
 
 }  // namespace rascal
 
-#endif  // SRC_REPRESENTATIONS_REPRESENTATION_MANAGER_SPHERICAL_GTO_EXPANSION_HH_
+#endif  // SRC_REPRESENTATIONS_REPRESENTATION_MANAGER_SPHERICAL_EXPANSION_HH_

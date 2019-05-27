@@ -61,7 +61,7 @@ class SphericalExpansion(object):
         Required arguments are all the hyperparameters named in the
         class documentation
         """
-        self.name = 'sphericalgtoexpansion'
+        self.name = 'sphericalexpansion'
         self.hypers = dict()
         self.update_hyperparameters(
             interaction_cutoff=interaction_cutoff,
