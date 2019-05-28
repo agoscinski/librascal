@@ -38,32 +38,54 @@
 namespace rascal {
   namespace math {
     /**
+     * Produce the weights and points for the Gauss-Legendre quadrature.
+     *
      * @params r_st starting point of the integral
      * @params r_nd ending point of the integral
+     * @params order_n number of gauss-legendre quadrature points
+     *
+     * @return point_weight order_n x 2 matrix containing the points (1st
+     * column) and the weights (2nd column) of the Gauss-Legendre quadrature.
+     *
+     * see https://github.com/JuliaApproximation/FastGaussQuadrature.jl
+     * for potential improvements of the method used here (Numerical Recepies)
      */
-    // 
     inline MatrixX2_t compute_gauss_legendre_points_weigths(const double& r_st, const double& r_nd, const int& order_n) {
+      if (order_n < 2) {
+        throw std::runtime_error(R"(there should be at least 2 integration
+        points but: order_n < 2 == true)");
+      }
       MatrixX2_t point_weight(order_n, 2);
+
       double z{0.}, pp{0.}, r_midpoint{(r_st+r_nd)*0.5}, r_length{0.5*(r_nd - r_st)};
-      for (int ii{1}; ii <= static_cast<int>((order_n+1)/2); ++ii) {
-        z = std::cos(math::PI * (ii - 0.25) / (order_n + 0.5));
+
+      int m{static_cast<int>((order_n+1)/2)};
+      // the weights and points are symmetric so only half need to be computed
+      for (int ii{0}; ii < m; ++ii) {
+        // starting guess for the ith root
+        z = std::cos(math::PI * (ii + 0.75) / (order_n + 0.5));
         double z1{0.};
         while (std::abs(z-z1) > dbl_ftol) {
           double p1{1.}, p2{0.};
-          for (int jj{1}; jj <= order_n; ++jj) {
+          // use LP 3-term recurrence relation with p1/2/3
+          for (int jj{0}; jj < order_n; ++jj) {
             double p3{p2};
             p2 = p1;
-            p1 = ((2.0*j-1.0)*z*p2-(j-1.0)*p3)/j;
+            p1 = ((2.0*jj+1.0)*z*p2-jj*p3)/(jj+1);
           }
+          // compute the derivative of the LP
           pp = order_n*(z*p1-p2)/(z*z-1.0);
           z1 = z;
+          // Newton's method
           z = z1 - p1/pp;
         }
 
-        point_weight(ii-1, 0) = r_midpoint - r_length*z;
-        point_weight(order_n+2-ii, 0) = r_midpoint + r_length*z;
-        point_weight(ii-1, 1) = (2.0*r_length)/((1.0-z*z)*pp*pp);
-        point_weight(order_n+2-ii, 1) = point_weight(ii-1, 1);
+        // scale the root to the [r_st, r_nd] interval
+        point_weight(ii, 0) = r_midpoint - r_length*z;
+        point_weight(order_n-1-ii, 0) = r_midpoint + r_length*z;
+        // compute the weight
+        point_weight(ii, 1) = (2.0*r_length)/((1.0-z*z)*pp*pp);
+        point_weight(order_n-1-ii, 1) = point_weight(ii, 1);
       }
       return point_weight;
     }

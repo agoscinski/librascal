@@ -33,6 +33,7 @@
 #include "math/math_interface.hh"
 #include "math/math_utils.hh"
 #include "math/hyp1f1.hh"
+#include "math/gauss_legendre.hh"
 #include "rascal_utility.hh"
 
 #include <fstream>
@@ -145,6 +146,24 @@ namespace rascal {
     double smooth_width{0.5};
     bool verbose{false};
   };
+
+
+  struct GaussLegendreRefFixture {
+    GaussLegendreRefFixture() {
+      std::vector<std::uint8_t> ref_data_ubjson;
+      internal::read_binary_file(this->ref_filename, ref_data_ubjson);
+      this->ref_data = json::from_ubjson(ref_data_ubjson);
+    }
+
+    ~GaussLegendreRefFixture() = default;
+
+    std::string ref_filename = "reference_data/gauss_legendre_reference.ubjson";
+
+    json ref_data{};
+    bool verbose{false};
+  };
+
+
 
 }  // namespace rascal
 
