@@ -132,8 +132,6 @@ namespace rascal {
       double r_scaled{PI * (r - cutoff + smooth_width) / smooth_width};
       return (-0.5 * PI / smooth_width * std::sin(r_scaled));
     }
-
-    
   }  // namespace math
 }  // namespace rascal
 
