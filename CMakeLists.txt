@@ -301,6 +301,7 @@ foreach(binaryfile ${binaries})
 endforeach(binaryfile ${binaries})
 configure_file("${CMAKE_SOURCE_DIR}/examples/crystal_structure.json" ${CMAKE_BINARY_DIR} COPYONLY)
 configure_file("${CMAKE_SOURCE_DIR}/examples/alanine-X.json" ${CMAKE_BINARY_DIR} COPYONLY)
+configure_file("${CMAKE_SOURCE_DIR}/examples/data/problematic_structure.json" ${CMAKE_BINARY_DIR} COPYONLY)
 
 # Add profiling information for the appropriate examples
 if (ENABLE_PROFILING)
