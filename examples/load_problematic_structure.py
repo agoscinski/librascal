@@ -31,7 +31,7 @@ write('data/problematic_structure.xyz', structure, format='xyz')
 frames = read('./data/problematic_structure.xyz', ':')
 
 hypers = dict(soap_type="PowerSpectrum",
-              interaction_cutoff=5.,
+              interaction_cutoff=3.5,
               max_radial=6,
               max_angular=4,
               gaussian_sigma_constant=0.4,
