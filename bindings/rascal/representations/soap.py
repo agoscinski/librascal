@@ -129,7 +129,7 @@ class SOAP(object):
                         'gaussian_sigma_constant', 'n_species', 'soap_type',
                         'normalize', 'cutoff_function', 'gaussian_density',
                         'radial_contribution'}
-                        
+
         hypers_clean = {key: hypers[key] for key in hypers
                         if key in allowed_keys}
         self.hypers.update(hypers_clean)
@@ -159,6 +159,7 @@ class SOAP(object):
         features = FeatureFactory(self.feature_options)
 
         for structure in structures:
+            print(structure)
             self.manager.update(**structure)
             self.representation.compute()
             features.append(self.representation)

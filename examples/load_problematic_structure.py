@@ -22,13 +22,13 @@ import json
 
 from rascal.representations import SOAP
 
-structure = read('data/problematic_structure_numbers.json', format='json')
+frames = [read('data/problematic_structure_numbers.json', format='json')]
 
-view(structure)
-write('prob_structure.png', structure)
-write('data/problematic_structure.xyz', structure, format='xyz')
+# view(structure)
+# write('prob_structure.png', structure)
+# write('data/problematic_structure.xyz', structure, format='xyz')
 
-frames = read('./data/problematic_structure.xyz', ':')
+# frames = read('./data/problematic_structure.xyz', ':')
 
 hypers = dict(soap_type="PowerSpectrum",
               interaction_cutoff=3.5,

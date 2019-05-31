@@ -42,17 +42,19 @@ using TripletManager_t = rascal::AdaptorMaxOrder<StrictPairManager_t>;
 
 int main() {
   auto manager{rascal::make_structure_manager<Manager_t>()};
-  double cutoff{1.};
+  double cutoff{3.5};
 
   std::string filename{"problematic_structure.json"};
 
   std::cout << "Reading structure " << filename << std::endl;
 
   auto pair_manager{rascal::make_adapted_manager<rascal::AdaptorNeighbourList>(
-      manager, cutoff, true)};
+      manager, cutoff, false)};
 
   auto strict_manager{rascal::make_adapted_manager<rascal::AdaptorStrict>(
       pair_manager, cutoff)};
+
+  strict_manager->update();
 
   // auto triplet_manager{
   //     rascal::make_adapted_manager<rascal::AdaptorMaxOrder>(strict_manager)};
