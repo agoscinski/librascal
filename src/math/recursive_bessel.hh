@@ -162,7 +162,12 @@ namespace rascal {
       /**
        * Cache to avoid recomputation of the MSBFs
        *
-       * Just initialize and use get_values() to access the values
+       * Just precompte() once, calc(), and use get_values() to access
+       * the values
+       *
+       * Note that this uses the "exp-exp complete-square" optimized function,
+       * where the Bessel function is multiplied by two exponentials that keep
+       * it from blowing up.
        */
       class ModifiedSphericalBesselCache {
        public:
@@ -176,8 +181,10 @@ namespace rascal {
         /**
          * Compute all the MBSFs for the given x-values up to the given order
          */
-        inline calc(const Eigen::Ref<const Eigen::VectorXd>& x_values, size_t l_max) {
-          bessel_values = bessel_i_exp_allorders(x_values, this->l_max);
+        inline calc(const Eigen::Ref<const Eigen::VectorXd>& x_values,
+                    const double r, const double a_scale) {
+          bessel_values = bessel_i_exp_exp_complete_square(
+              x_values, r, a_scale, this->l_max);
         }
 
         ~ModifiedSphericalBesselCache = default;
