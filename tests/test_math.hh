@@ -34,6 +34,7 @@
 #include "math/math_utils.hh"
 #include "math/hyp1f1.hh"
 #include "math/gauss_legendre.hh"
+#include "math/recursive_bessel.hh"
 #include "rascal_utility.hh"
 
 #include <fstream>
@@ -161,6 +162,21 @@ namespace rascal {
 
     json ref_data{};
     bool verbose{false};
+  };
+
+  struct ModifiedBesselFirstKindRefFixture {
+    ModifiedBesselFirstKindRefFixture() {
+      std::vector<std::uint8_t> ref_data_ubjson;
+      internal::read_binary_file(this->ref_filename, ref_data_ubjson);
+      this->ref_data = json::from_ubjson(ref_data_ubjson);
+    }
+
+    ~ModifiedBesselFirstKindRefFixture() = default;
+
+    std::string ref_filename = "reference_data/modified_bessel_first_kind_reference.ubjson";
+
+    json ref_data{};
+    bool verbose{true};
   };
 
 

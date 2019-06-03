@@ -553,7 +553,8 @@ namespace rascal {
 
 
         this->radial_integral_center = this->legendre_radial_factor.array() * (fac_a * this->legendre_points).array().exp();
-
+        
+        return Matrix_Ref(this->radial_integral_center);
       }
 
       //! define the contribution from a neighbour atom to the expansion
@@ -565,16 +566,18 @@ namespace rascal {
         using math::pow;
         using std::sqrt;
 
+        auto smearing{downcast_atomic_smearing<AST>(this->atomic_smearing)};
         // a = 1 / (2*\sigma^2)
         double fac_a{0.5 * pow(smearing->get_gaussian_sigma(pair), -2)};
 
         this->bessel.calc(this->legendre_points, distance, fac_a);
-        
+
         this->radial_integral_neighbour =
           this->legendre_radial_factor.asDiagonal() * this->bessel.get_values().matrix();
+        return Matrix_Ref(this->radial_integral_neighbour);
       }
 
-      ModifiedSphericalBesselCache bessel{};
+      math::ModifiedSphericalBesselCache bessel{};
 
       std::shared_ptr<AtomicSmearingSpecificationBase> atomic_smearing{};
       AtomicSmearingType atomic_smearing_type{};
