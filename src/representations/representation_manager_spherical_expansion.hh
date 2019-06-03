@@ -569,9 +569,11 @@ namespace rascal {
         double fac_a{0.5 * pow(smearing->get_gaussian_sigma(pair), -2)};
 
         this->bessel.calc(this->legendre_points, distance, fac_a);
-        
+
         this->radial_integral_neighbour =
           this->legendre_radial_factor.asDiagonal() * this->bessel.get_values().matrix();
+        // Note(max) equivalent?
+        // this->legendre_radial_factor * this->bessel.get_values().rowwise()
       }
 
       ModifiedSphericalBesselCache bessel{};
