@@ -36,6 +36,8 @@
 #include "structure_managers/property.hh"
 #include "rascal_utility.hh"
 #include "math/math_utils.hh"
+#include "math/gauss_legendre.hh"
+#include "math/recursive_bessel.hh"
 #include "math/hyp1f1.hh"
 #include "structure_managers/property_block_sparse.hh"
 
@@ -457,7 +459,7 @@ namespace rascal {
 
 
     /**
-     * Implementation of the radial contribution for DVR
+     * Implementation of the radial contribution for DVR basis
      */
     template <>
     struct RadialContribution<RadialBasisType::DVR> : RadialContributionBase {
@@ -497,7 +499,7 @@ namespace rascal {
 
         // init size of the member data
         // both precomputed quantities and actual expansion coefficients
-        this->legendre_weights.resize(this->max_radial);
+        this->legendre_radial_factor.resize(this->max_radial);
         this->legendre_points.resize(this->max_radial);
 
         this->radial_integral_neighbour.resize(this->max_radial,
@@ -508,6 +510,8 @@ namespace rascal {
         auto fc_hypers = hypers.at("cutoff_function").get<json>();
         this->interaction_cutoff =
             fc_hypers.at("cutoff").at("value").get<double>();
+        this->smooth_width =
+            fc_hypers.at("smooth_width").at("value").get<double>();
 
         // define the type of smearing to use
         auto smearing_hypers = hypers.at("gaussian_density").get<json>();
@@ -526,7 +530,12 @@ namespace rascal {
       }
 
       void precompute() {
+        auto point_weight{math::compute_gauss_legendre_points_weights(0., this->interaction_cutoff+2*this->smooth_width, this->max_radial)};
 
+        this->legendre_radial_factor = point_weight.col(1).array().sqrt() * point_weight.col(0).array().square();
+        this->legendre_points = point_weight.col(0);
+
+        this->bessel.precompute(this->max_radial, this->max_angular);
       }
 
       //! define the contribution from the central atom to the expansion
@@ -543,6 +552,8 @@ namespace rascal {
         double fac_a{0.5 * pow(smearing->get_gaussian_sigma(center), -2)};
 
 
+        this->radial_integral_center = this->legendre_radial_factor.array() * (fac_a * this->legendre_points).array().exp();
+
       }
 
       //! define the contribution from a neighbour atom to the expansion
@@ -554,10 +565,16 @@ namespace rascal {
         using math::pow;
         using std::sqrt;
 
+        // a = 1 / (2*\sigma^2)
+        double fac_a{0.5 * pow(smearing->get_gaussian_sigma(pair), -2)};
 
+        this->bessel.calc(this->legendre_points, distance, fac_a);
+        
+        this->radial_integral_neighbour =
+          this->legendre_radial_factor.asDiagonal() * this->bessel.get_values().matrix();
       }
 
-
+      ModifiedSphericalBesselCache bessel{};
 
       std::shared_ptr<AtomicSmearingSpecificationBase> atomic_smearing{};
       AtomicSmearingType atomic_smearing_type{};
@@ -567,13 +584,15 @@ namespace rascal {
       Vector_t radial_integral_center{};
 
       Hypers_t hypers{};
-      // some
+      // some useful parameters
       double interaction_cutoff{};
+      double smooth_width{};
       size_t max_radial{};
       size_t max_angular{};
 
-      Vector_t legendre_weights{};
+      Vector_t legendre_radial_factor{};
       Vector_t legendre_points{};
+      Vector_t legendre_points2{};
     };
 
   }  // namespace internal

@@ -50,7 +50,7 @@ namespace rascal {
      * see https://github.com/JuliaApproximation/FastGaussQuadrature.jl
      * for potential improvements of the method used here (Numerical Recepies)
      */
-    inline MatrixX2_t compute_gauss_legendre_points_weigths(const double& r_st, const double& r_nd, const int& order_n) {
+    inline MatrixX2_t compute_gauss_legendre_points_weights(const double& r_st, const double& r_nd, const int& order_n) {
       if (order_n < 2) {
         throw std::runtime_error(R"(there should be at least 2 integration
         points but: order_n < 2 == true)");

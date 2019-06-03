@@ -44,7 +44,7 @@ namespace rascal {
        * are computed and returned, up to a specified maximum order.
        *
        * @param x     Argument of the MBSF
-       * @param max_n Maximum order to compute
+       * @param l_max Maximum order to compute
        *
        * @return Eigen::Array (1-D) of Bessel function values
        *
@@ -53,19 +53,19 @@ namespace rascal {
        * leading order as 1/x).  If you want i_n(x) itself, multiply the
        * result by e^x (at your own peril).
        */
-      Eigen::ArrayXd bessel_i_exp_allorders(double x, size_t max_n) {
-        if (max_n < 1) {
-          max_n = 1;
+      Eigen::ArrayXd bessel_i_exp_allorders(double x, size_t l_max) {
+        if (l_max < 1) {
+          l_max = 1;
         }
-        Eigen::ArrayXd function_values{max_n + 1};
+        Eigen::ArrayXd function_values{l_max + 1};
         // Note: Since x is not likely to be close to zero, there is no
         // signficant improvement in accuracy from using std::expm1 instead
         function_values(0) = (1. - std::exp(2.*x)) / (2.*x);
         function_values(1) = ((x - 1.) + std::exp(2.*x)*(x + 1.)) / (2.*x*x)
-        for (size_t n_order{2}; n_order < max_n; ++n_order) {
-          function_values(n_order) =
-              function_values(n_order - 1)*(2.*n_order - 1.) / x
-              + function_values(n_order - 2);
+        for (size_t l_order{2}; l_order < l_max; ++l_order) {
+          function_values(l_order) =
+              function_values(l_order - 1)*(2.*l_order - 1.) / x
+              + function_values(l_order - 2);
         }
         return function_values;
       }
@@ -76,25 +76,25 @@ namespace rascal {
        * Vectorized version for multiple arguments (xs)
        *
        * @param xs    Eigen::Array of MBSF arguments
-       * @param max_n Maximum order to compute
+       * @param l_max Maximum order to compute
        *
        * @return Eigen::Array (2-D) of Bessel function values.  The different
        *         arguments (xs) go along the rows, while the column indexes
        *         the orders (n-values).
        */
       Eigen::ArrayXXd bessel_i_exp_allorders(
-          const Eigen::Ref<const Eigen::ArrayXd>& xs, size_t max_n) {
-        if (max_n < 1) {
-          max_n = 1;
+          const Eigen::Ref<const Eigen::ArrayXd>& xs, size_t l_max) {
+        if (l_max < 1) {
+          l_max = 1;
         }
-        Eigen::ArrayXXd function_values{xs.size(), max_n + 1};
+        Eigen::ArrayXXd function_values{xs.size(), l_max + 1};
         function_values.col(0) = (1. - Eigen::exp(2.*xs)) / (2.*xs);
         function_values.col(1) = ((xs - 1.) + Eigen::exp(2.*xs)*(xs + 1.))
                                / (2.*xs.square());
-        for (size_t n_order{2}; n_order < max_n; ++n_order) {
-          function_values.col(n_order) =
-              function_values.col(n_order - 1)*(2.*n_order - 1.) / xs
-              + function_values.col(n_order - 2);
+        for (size_t l_order{2}; l_order < l_max; ++l_order) {
+          function_values.col(l_order) =
+              function_values.col(l_order - 1)*(2.*l_order - 1.) / xs
+              + function_values.col(l_order - 2);
         }
         return function_values;
       }
@@ -105,15 +105,19 @@ namespace rascal {
        * Just initialize and use get_values() to access the values
        */
       class ModifiedSphericalBesselCache {
+       public:
+        ModifiedSphericalBesselCache = default;
 
-        ModifiedSphericalBesselCache = delete;
+        precompute(const size_t& l_max, const size_t& n_max) {
+          this->bessel_values.resize(n_max, l_max+1);
+          this->l_max = l_max;
+        }
 
         /**
          * Compute all the MBSFs for the given x-values up to the given order
          */
-        ModifiedSphericalBesselCache(
-            const Eigen::Ref<const Eigen::VectorXd>& x_values, size_t max_n) {
-          bessel_values = bessel_i_exp_allorders(x_values, max_n);
+        inline calc(const Eigen::Ref<const Eigen::VectorXd>& x_values, size_t l_max) {
+          bessel_values = bessel_i_exp_allorders(x_values, this->l_max);
         }
 
         ~ModifiedSphericalBesselCache = default;
@@ -127,11 +131,12 @@ namespace rascal {
          *         Note that a reference is returned to avoid unnecessary
          *         copies.
          */
-        const Eigen::ArrayXXd& get_values() {
-          return *bessel_values;
+        Eigen::Ref<const Eigen::ArrayXXd> get_values() {
+          return bessel_values;
         }
 
         Eigen::ArrayXXd bessel_values{};
+        size_t l_max{};
 
       }
 
