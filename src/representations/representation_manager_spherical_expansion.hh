@@ -553,7 +553,7 @@ namespace rascal {
 
 
         this->radial_integral_center = this->legendre_radial_factor.array() * (fac_a * this->legendre_points).array().exp();
-        
+
         return Matrix_Ref(this->radial_integral_center);
       }
 
@@ -574,6 +574,8 @@ namespace rascal {
 
         this->radial_integral_neighbour =
           this->legendre_radial_factor.asDiagonal() * this->bessel.get_values().matrix();
+        // Note(max) equivalent?
+        // this->legendre_radial_factor * this->bessel.get_values().rowwise()
         return Matrix_Ref(this->radial_integral_neighbour);
       }
 
