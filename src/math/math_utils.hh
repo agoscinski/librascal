@@ -30,7 +30,6 @@
 #define SRC_MATH_MATH_UTILS_HH_
 
 #include "math_interface.hh"
-// #include "hyp1f1_recurrence.hh"
 
 #include <Eigen/Dense>
 #include <cmath>
@@ -133,7 +132,7 @@ namespace rascal {
       return (-0.5 * PI / smooth_width * std::sin(r_scaled));
     }
 
-    
+
   }  // namespace math
 }  // namespace rascal
 

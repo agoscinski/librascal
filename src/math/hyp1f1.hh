@@ -28,10 +28,8 @@
 #ifndef SRC_MATH_HYP1F1_HH_
 #define SRC_MATH_HYP1F1_HH_
 
-#include "math/math_interface.hh"
 #include "math/math_utils.hh"
 
-#include <map>
 
 namespace rascal {
   namespace math {

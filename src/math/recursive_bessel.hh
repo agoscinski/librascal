@@ -30,7 +30,7 @@
 #ifndef SRC_MATH_RECURSIVE_BESSEL_HH_
 #define SRC_MATH_RECURSIVE_BESSEL_HH_
 
-#include "math/math_interface.hh"
+
 #include "math/math_utils.hh"
 
 namespace rascal {

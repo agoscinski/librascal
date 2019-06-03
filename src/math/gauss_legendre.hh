@@ -1,5 +1,5 @@
 /**
- * file   hyp1f1.hh
+ * file   gauss_legendre.hh
  *
  * @author  Felix Musil <felix.musil@epfl.ch>
  * @author  Max Veit <max.veit@epfl.ch>
@@ -30,7 +30,6 @@
 #ifndef SRC_MATH_GAUSS_LEGENDRE_HH_
 #define SRC_MATH_GAUSS_LEGENDRE_HH_
 
-#include "math/math_interface.hh"
 #include "math/math_utils.hh"
 
 #include <map>
