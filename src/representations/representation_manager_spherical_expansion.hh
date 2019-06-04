@@ -365,7 +365,8 @@ namespace rascal {
 
         this->radial_integral_neighbour =
             (a_b_l_n.array() * this->hyp1f1_calculator.get_values().array())
-                .matrix() * distance_fac_a_l.asDiagonal();
+                .matrix() *
+            distance_fac_a_l.asDiagonal();
         this->radial_integral_neighbour.transpose() *=
             this->radial_norm_factors.asDiagonal();
         this->radial_integral_neighbour.transpose() *=
@@ -457,7 +458,6 @@ namespace rascal {
       Matrix_t radial_ortho_matrix{};
     };
 
-
     /**
      * Implementation of the radial contribution for DVR basis
      */
@@ -530,9 +530,12 @@ namespace rascal {
       }
 
       void precompute() {
-        auto point_weight{math::compute_gauss_legendre_points_weights(0., this->interaction_cutoff+2*this->smooth_width, this->max_radial)};
+        auto point_weight{math::compute_gauss_legendre_points_weights(
+            0., this->interaction_cutoff + 2 * this->smooth_width,
+            this->max_radial)};
 
-        this->legendre_radial_factor = point_weight.col(1).array().sqrt() * point_weight.col(0).array().square();
+        this->legendre_radial_factor = point_weight.col(1).array().sqrt() *
+                                       point_weight.col(0).array().square();
         this->legendre_points = point_weight.col(0);
 
         this->bessel.precompute(this->max_radial, this->max_angular);
@@ -551,8 +554,9 @@ namespace rascal {
         // a = 1 / (2*\sigma^2)
         double fac_a{0.5 * pow(smearing->get_gaussian_sigma(center), -2)};
 
-
-        this->radial_integral_center = this->legendre_radial_factor.array() * (fac_a * this->legendre_points).array().exp();
+        this->radial_integral_center =
+            this->legendre_radial_factor.array() *
+            (fac_a * this->legendre_points).array().exp();
 
         return Matrix_Ref(this->radial_integral_center);
       }
@@ -573,7 +577,8 @@ namespace rascal {
         this->bessel.calc(this->legendre_points, distance, fac_a);
 
         this->radial_integral_neighbour =
-          this->legendre_radial_factor.asDiagonal() * this->bessel.get_values().matrix();
+            this->legendre_radial_factor.asDiagonal() *
+            this->bessel.get_values().matrix();
         // Note(max) equivalent?
         // this->legendre_radial_factor * this->bessel.get_values().rowwise()
         return Matrix_Ref(this->radial_integral_neighbour);
@@ -860,7 +865,7 @@ namespace rascal {
       auto & coefficients_center = this->expansions_coefficients[center];
       Key_t center_type{center.get_atom_type()};
 
-      //TODO(felix) think about an option to have "global" species,
+      // TODO(felix) think about an option to have "global" species,
       //"structure" species(or not), or automatic at the level of environment
       std::unordered_set<Key_t, internal::Hash<Key_t>> keys{};
       for (auto neigh : center) {
@@ -898,12 +903,12 @@ namespace rascal {
             for (size_t m_array_idx{0}; m_array_idx < 2 * angular_l + 1;
                  m_array_idx++) {
               coefficients_center_by_type(radial_n, lm_collective_idx) +=
-                  //TODO(felix) check if you gain anything by accessing this
+                  // TODO(felix) check if you gain anything by accessing this
                   // outside the m loop
                   neighbour_contribution(radial_n, angular_l) *
                   harmonics(angular_l, m_array_idx);
-                  //TODO(felix) refactor compute_spherical_harmonics to
-                  //return a vector of (lmax+1)^2 elements
+              // TODO(felix) refactor compute_spherical_harmonics to
+              // return a vector of (lmax+1)^2 elements
               ++lm_collective_idx;
             }
           }

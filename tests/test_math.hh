@@ -110,8 +110,8 @@ namespace rascal {
   struct Hyp1f1SphericalExpansionFixture {
     Hyp1f1SphericalExpansionFixture() {
 
-      for (auto& l_max : l_maxs) {
-        for (auto& n_max : n_maxs) {
+      for (auto & l_max : l_maxs) {
+        for (auto & n_max : n_maxs) {
           hyp1f1.emplace_back(false, 1e-14);
           hyp1f1.back().precompute(n_max, l_max);
           hyp1f1_recursion.emplace_back(true, 1e-14);
@@ -119,13 +119,14 @@ namespace rascal {
         }
       }
 
-      for (auto& rc : rcs) {
+      for (auto & rc : rcs) {
         facs_b.emplace_back();
         for (size_t il{0}; il < l_maxs.size();) {
-          for (auto& n_max : n_maxs) {
+          for (auto & n_max : n_maxs) {
             facs_b.back().emplace_back(n_max);
             for (int n{0}; n < n_max; ++n) {
-              double sigma_n{(rc-smooth_width) * std::max(std::sqrt(n), 1.) / n_max};
+              double sigma_n{(rc - smooth_width) * std::max(std::sqrt(n), 1.) /
+                             n_max};
               facs_b.back().back()(n) = 0.5 * math::pow(sigma_n, 2);
             }
           }
@@ -147,7 +148,6 @@ namespace rascal {
     double smooth_width{0.5};
     bool verbose{false};
   };
-
 
   struct GaussLegendreRefFixture {
     GaussLegendreRefFixture() {
@@ -173,13 +173,12 @@ namespace rascal {
 
     ~ModifiedBesselFirstKindRefFixture() = default;
 
-    std::string ref_filename = "reference_data/modified_bessel_first_kind_reference.ubjson";
+    std::string ref_filename =
+        "reference_data/modified_bessel_first_kind_reference.ubjson";
 
     json ref_data{};
     bool verbose{true};
   };
-
-
 
 }  // namespace rascal
 

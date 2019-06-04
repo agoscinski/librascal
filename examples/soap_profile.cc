@@ -109,11 +109,10 @@ int main(int argc, char * argv[]) {
   }
   auto finish = std::chrono::high_resolution_clock::now();
 
-
   elapsed = finish - start;
   std::cout << "Neighbour List"
-            << " elapsed: " << elapsed.count() / N_ITERATIONS
-            << " seconds" << std::endl;
+            << " elapsed: " << elapsed.count() / N_ITERATIONS << " seconds"
+            << std::endl;
 
   Representation_t representation{manager, hypers};
 
@@ -126,6 +125,6 @@ int main(int argc, char * argv[]) {
 
   elapsed = finish - start;
   std::cout << "Compute represenation"
-            << " elapsed: " << elapsed.count() / N_ITERATIONS
-            << " seconds" << std::endl;
+            << " elapsed: " << elapsed.count() / N_ITERATIONS << " seconds"
+            << std::endl;
 }

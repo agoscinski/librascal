@@ -46,21 +46,22 @@ namespace rascal {
       auto val{math::compute_gauss_legendre_points_weights(a, b, order)};
 
       for (int ii{0}; ii < order; ++ii) {
-        double points_rel_error{(val(ii, 0) - points_ref[ii]) };
+        double points_rel_error{(val(ii, 0) - points_ref[ii])};
         double weigths_rel_error{(val(ii, 1) - weights_ref[ii])};
 
-        if ((points_rel_error > math::dbl_ftol or weigths_rel_error > math::dbl_ftol) and this->verbose) {
+        if ((points_rel_error > math::dbl_ftol or
+             weigths_rel_error > math::dbl_ftol) and
+            this->verbose) {
           std::cout << " a=" << a << " b=" << b << " order=" << order
-                    << " point_err=" << points_rel_error << " weight_err=" << weigths_rel_error << std::endl;
+                    << " point_err=" << points_rel_error
+                    << " weight_err=" << weigths_rel_error << std::endl;
         }
 
         BOOST_CHECK_LE(points_rel_error, math::dbl_ftol);
         BOOST_CHECK_LE(weigths_rel_error, math::dbl_ftol);
       }
-
     }
   }
-
 
   /* ---------------------------------------------------------------------- */
   BOOST_AUTO_TEST_SUITE_END();
