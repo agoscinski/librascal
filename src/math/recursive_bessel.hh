@@ -33,7 +33,6 @@
 
 namespace rascal {
   namespace math {
-
     /**
      * Compute the modified spherical Bessel function of the first kind
      *
@@ -55,26 +54,26 @@ namespace rascal {
      * \[
      *    i_0(x) = sinh(x) / x
      *    i_1(x) = (x*cosh(x) + sinh(x)) / x^2
-     *    i_n(x) = (2n - 1)/x * i_{n-1}(x) - i_{n-2}(x)
+     *    i_n(x) = i_{n-2}(x) - (2n - 1)/x * i_{n-1}(x)
      * \]
      * from http://mathworld.wolfram.com/
      *        ModifiedSphericalBesselFunctionoftheFirstKind.html
-     * (whew)
+     *
      */
-    Eigen::ArrayXd bessel_i_exp_allorders(double x, size_t l_max) {
-      if (l_max < 1) {
-        l_max = 1;
+    inline Eigen::ArrayXd bessel_i_exp_allorders(double x, size_t order_max) {
+      if (order_max < 1) {
+        order_max = 1;
       }
-      Eigen::ArrayXd function_values{l_max + 1};
+      Eigen::ArrayXd function_values{order_max};
       // Note: Since x is not likely to be close to zero, there is no
       // signficant improvement in accuracy from using std::expm1 instead
-      function_values(0) = (1. - std::exp(2. * x)) / (2. * x);
+      function_values(0) = (1. - std::exp(-2. * x)) / (2. * x);
       function_values(1) =
-          ((x - 1.) + std::exp(2. * x) * (x + 1.)) / (2. * x * x);
-      for (size_t l_order{2}; l_order < l_max; ++l_order) {
-        function_values(l_order) =
-            function_values(l_order - 1) * (2. * l_order - 1.) / x -
-            function_values(l_order - 2);
+          ((x - 1.) + std::exp(-2. * x) * (x + 1.)) / (2. * x * x);
+      for (size_t order{2}; order < order_max; ++order) {
+        function_values(order) =
+            - function_values(order - 1) * (2. * order - 1.) / x
+            + function_values(order - 2);
       }
       return function_values;
     }
@@ -85,27 +84,27 @@ namespace rascal {
      * Vectorized version for multiple arguments (x_v)
      *
      * @param x_v   Eigen::Array of MBSF arguments
-     * @param l_max Maximum order to compute
+     * @param order_max Maximum order to compute
      *
      * @return Eigen::Array (2-D) of Bessel function values.  The different
      *         arguments (x_v) go along the rows, while the column indexes
      *         the orders (n-values).
      */
-    Eigen::ArrayXXd
+    inline Eigen::ArrayXXd
     bessel_i_exp_allorders(const Eigen::Ref<const Eigen::ArrayXd> & x_v,
-                           size_t l_max) {
-      if (l_max < 1) {
-        l_max = 1;
+                           size_t order_max) {
+      if (order_max < 1) {
+        order_max = 1;
       }
-      Eigen::ArrayXXd function_values{x_v.size(), l_max + 1};
-      function_values.col(0) = (1. - Eigen::exp(2. * x_v)) / (2. * x_v);
+      Eigen::ArrayXXd function_values{x_v.size(), order_max + 1};
+      function_values.col(0) = (1. - Eigen::exp(-2. * x_v)) / (2. * x_v);
       function_values.col(1) =
-          ((x_v - 1.) + Eigen::exp(2. * x_v) * (x_v + 1.)) /
+          ((x_v - 1.) + Eigen::exp(-2. * x_v) * (x_v + 1.)) /
           (2. * x_v.square());
-      for (size_t l_order{2}; l_order < l_max; ++l_order) {
-        function_values.col(l_order) =
-            function_values.col(l_order - 1) * (2. * l_order - 1.) / x_v -
-            function_values.col(l_order - 2);
+      for (size_t order{2}; order < order_max; ++order) {
+        function_values.col(order) =
+            - function_values.col(order - 1) * (2. * order - 1.) / x_v
+            + function_values.col(order - 2);
       }
       return function_values;
     }
@@ -131,13 +130,13 @@ namespace rascal {
      *             (ultimately, radial indices) correspond to rows, while the
      *             columns correspond to MBSF orders (ultimately l-channels).
      */
-    Eigen::ArrayXXd bessel_i_exp_exp_complete_square(
+    inline Eigen::ArrayXXd bessel_i_exp_exp_complete_square(
         const Eigen::Ref<const Eigen::ArrayXd> & x_v, const double r,
-        const double a_scale, size_t l_max) {
-      if (l_max < 1) {
-        l_max = 1;
+        const double a_scale, size_t order_max) {
+      if (order_max < 1) {
+        order_max = 1;
       }
-      Eigen::ArrayXXd function_values{x_v.size(), l_max + 1};
+      Eigen::ArrayXXd function_values{x_v.size(), order_max};
       Eigen::ArrayXd bessel_arg{x_v.size()};
       bessel_arg = 2. * a_scale * r * x_v;
       // TODO(max) is it faster to allocate arrays for the exp results, or
@@ -146,16 +145,16 @@ namespace rascal {
       // i_0(z) = sinh(z)/z
       function_values.col(0) = (Eigen::exp(-a_scale * (x_v - r).square()) -
                                 Eigen::exp(-a_scale * (x_v + r).square())) /
-                               bessel_arg;
+                               (2.*bessel_arg);
       // i_1(z) = cosh(z)/z - i_0(z)/z
       function_values.col(1) = ((Eigen::exp(-a_scale * (x_v - r).square()) +
                                  Eigen::exp(-a_scale * (x_v + r).square())) /
-                                bessel_arg) -
+                                (2.*bessel_arg)) -
                                (function_values.col(0) / bessel_arg);
-      for (size_t l_order{2}; l_order < l_max; ++l_order) {
-        function_values.col(l_order) = function_values.col(l_order - 1) *
-                                           (2. * l_order - 1.) / bessel_arg -
-                                       function_values.col(l_order - 2);
+      for (size_t l_order{2}; l_order < order_max; ++l_order) {
+        function_values.col(l_order) = - function_values.col(l_order - 1) *
+                                           (2. * l_order - 1.) / bessel_arg
+                                       + function_values.col(l_order - 2);
       }
       return function_values;
     }

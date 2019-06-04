@@ -26,13 +26,14 @@ def dump_reference_json():
     sys.path.insert(0, os.path.join(path, 'build/'))
     sys.path.insert(0, os.path.join(path, 'tests/'))
     data = []
-    orders = list(range(1,20))
-    for x in np.linspace(10,6000,500):
+    max_order = 20
+    orders = list(range(max_order))
+    for x in np.logspace(0.8, 3.8, 300):
         vals = []
         for order in orders:
             val = sbesseli(order, x)
             vals.append(float(val))
-        data.append(dict(x=x,max_order=orders[-1],vals=vals))
+        data.append(dict(x=x,max_order=max_order,vals=vals))
     print(len(data))
     with open(path+"tests/reference_data/modified_bessel_first_kind_reference.ubjson",'wb') as f:
         ubjson.dump(data,f)
