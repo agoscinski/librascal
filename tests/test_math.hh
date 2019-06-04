@@ -166,15 +166,17 @@ namespace rascal {
 
   struct ModifiedBesselFirstKindRefFixture {
     ModifiedBesselFirstKindRefFixture() {
-      std::vector<std::uint8_t> ref_data_ubjson;
-      internal::read_binary_file(this->ref_filename, ref_data_ubjson);
-      this->ref_data = json::from_ubjson(ref_data_ubjson);
+      // std::vector<std::uint8_t> ref_data_ubjson;
+      // internal::read_binary_file(this->ref_filename, ref_data_ubjson);
+      // this->ref_data = json::from_ubjson(ref_data_ubjson);
+
+      internal::read_text_file(this->ref_filename, this->ref_data);
     }
 
     ~ModifiedBesselFirstKindRefFixture() = default;
 
     std::string ref_filename =
-        "reference_data/modified_bessel_first_kind_reference.ubjson";
+        "reference_data/modified_bessel_first_kind_reference.json";
 
     json ref_data{};
     bool verbose{true};

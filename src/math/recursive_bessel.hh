@@ -64,7 +64,7 @@ namespace rascal {
       if (order_max < 1) {
         order_max = 1;
       }
-      Eigen::ArrayXd function_values{order_max};
+      Eigen::ArrayXd function_values(order_max);
       // Note: Since x is not likely to be close to zero, there is no
       // signficant improvement in accuracy from using std::expm1 instead
       function_values(0) = (1. - std::exp(-2. * x)) / (2. * x);
@@ -96,7 +96,7 @@ namespace rascal {
       if (order_max < 1) {
         order_max = 1;
       }
-      Eigen::ArrayXXd function_values{x_v.size(), order_max + 1};
+      Eigen::ArrayXXd function_values(x_v.size(), order_max);
       function_values.col(0) = (1. - Eigen::exp(-2. * x_v)) / (2. * x_v);
       function_values.col(1) =
           ((x_v - 1.) + Eigen::exp(-2. * x_v) * (x_v + 1.)) /
@@ -133,30 +133,32 @@ namespace rascal {
     inline Eigen::ArrayXXd bessel_i_exp_exp_complete_square(
         const Eigen::Ref<const Eigen::ArrayXd> & x_v, const double r,
         const double a_scale, size_t order_max) {
+      using Prec_t = long double;
       if (order_max < 1) {
         order_max = 1;
       }
-      Eigen::ArrayXXd function_values{x_v.size(), order_max};
-      Eigen::ArrayXd bessel_arg{x_v.size()};
-      bessel_arg = 2. * a_scale * r * x_v;
+      Eigen::Array<Prec_t, Eigen::Dynamic, Eigen::Dynamic> function_values(x_v.size(), order_max);
+      Eigen::Array<Prec_t, Eigen::Dynamic, 1> bessel_arg(x_v.size());
+      bessel_arg = static_cast<Prec_t>(2. * a_scale * r) * x_v.cast<Prec_t>();
       // TODO(max) is it faster to allocate arrays for the exp results, or
       //           does the cost of allocating memory outweigh the savings
       //           of evaluating it again _once_?
       // i_0(z) = sinh(z)/z
+      Prec_t fac{2.};
       function_values.col(0) = (Eigen::exp(-a_scale * (x_v - r).square()) -
-                                Eigen::exp(-a_scale * (x_v + r).square())) /
-                               (2.*bessel_arg);
+                                Eigen::exp(-a_scale * (x_v + r).square())).cast<Prec_t>() /
+                               (fac*bessel_arg);
       // i_1(z) = cosh(z)/z - i_0(z)/z
       function_values.col(1) = ((Eigen::exp(-a_scale * (x_v - r).square()) +
-                                 Eigen::exp(-a_scale * (x_v + r).square())) /
-                                (2.*bessel_arg)) -
+                                 Eigen::exp(-a_scale * (x_v + r).square())).cast<Prec_t>() /
+                                (fac*bessel_arg)) -
                                (function_values.col(0) / bessel_arg);
-      for (size_t l_order{2}; l_order < order_max; ++l_order) {
-        function_values.col(l_order) = - function_values.col(l_order - 1) *
-                                           (2. * l_order - 1.) / bessel_arg
-                                       + function_values.col(l_order - 2);
+      for (size_t order{2}; order < order_max; ++order) {
+        function_values.col(order) = - function_values.col(order - 1) *
+                              static_cast<Prec_t>(2. * order - 1.) / bessel_arg
+                                       + function_values.col(order - 2);
       }
-      return function_values;
+      return function_values.cast<double>();
     }
 
     /**
