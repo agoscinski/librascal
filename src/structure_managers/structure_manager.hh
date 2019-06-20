@@ -424,12 +424,6 @@ namespace rascal {
       this->template validate_property_t<UserProperty_t>(property);
     }
 
-    // #BUG8486@(till) I made the function but I don't use it, because if you
-    // keep a reference of an object as member variable, you have to initialize
-    // it in the initialization list of the constructor. The property is not
-    // created until the adaptor's update function is invoked. So I would need
-    // to give the adaptor a dummy property object for initialization. I dont
-    // think this is a nice solution.
     template <typename UserProperty_t>
     UserProperty_t &
     get_validated_property_ref(const std::string & name) const {
@@ -439,6 +433,7 @@ namespace rascal {
           static_cast<UserProperty_t *>(property.get());
       return *property_ptr;
     }
+
     /*  Returns the typed property. Throws an error if property type given from
      *  user does not match actual property type.
      */
@@ -472,6 +467,23 @@ namespace rascal {
         return property;
       }
     }
+    // TODO(felix) this is my suggestion for the property function
+    // with force creation true if the property does not exist.
+    // There is some code repition which can be removed when we agree on
+    // how to implement the force creation
+    //template <typename UserProperty_t>
+    //std::shared_ptr<UserProperty_t> get_validated_property_ptr(const std::string & name, const bool & force_creation=false) {
+    //  if (not(this->has_property(name))) {
+    //    if (not(force_creation)) {
+    //      std::stringstream error{};
+    //      error << "No property of name '" << name << "' has been registered";
+    //      throw std::runtime_error(error.str());
+    //    } else {
+    //      this->create_property<UserProperty_t>(name);
+    //    }
+    //  }
+    //  return this->get_validated_property_ptr<UserProperty_t>(name);
+    //}
 
     template <typename UserProperty_t>
     UserProperty_t & get_property_ref(const std::string & name) {

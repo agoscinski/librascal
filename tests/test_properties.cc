@@ -565,9 +565,11 @@ namespace rascal {
     }
   }
 
+  // TODO(alex) add default distance function
+  // TODO(alex) template tests
   BOOST_FIXTURE_TEST_CASE(create_and_get_property_test,
       AtomPropertyFixture<StructureManagerCentersStackFixture>) {
-    bool verbose{true};
+    bool verbose{false};
     if (verbose) {
       std::cout << ">> create_and_get_property_test for manager ";
       std::cout << manager->get_name();
@@ -587,9 +589,10 @@ namespace rascal {
     if (verbose) {
       std::cout << ">> Fill property by pointer." << std::endl;
     }
+    ptr.get()->resize(false);
     size_t counter{0};
     for (auto atom : this->manager) {
-      ptr->operator[](atom) = counter;
+      ptr.get()->operator[](atom) = counter;
       counter++;
     }
 
@@ -603,7 +606,7 @@ namespace rascal {
     }
 
     if (verbose) {
-      std::cout << " finished." << std::endl;
+      std::cout << ">> create_and_get_property_test finished." << std::endl;
     }
   }
 
@@ -615,14 +618,14 @@ namespace rascal {
       std::cout << manager->get_name();
       std::cout << " starts now." << std::endl;
     }
-    //using Distance_t = typename  AdaptorStrict<StructureManagerCenters>::Distance_t;
+    // this does not work but would be more nice
+    //typedef AdaptorStrict<StructureManagerCenters>::Distance_t Distance_t;
     using Distance_t = typename Manager_t::template Property_t<double, 2, 1>;
-    auto distance_property{this->manager->get_validated_property_ptr<Distance_t>};
-    double distance;
+    Distance_t & distance_property{this->manager->get_validated_property_ref<Distance_t>("distance")};
     for (auto atom : this->manager) {
       for (auto pair : atom) {
         BOOST_CHECK_EQUAL(this->manager->get_distance(pair),
-            distance_property->operator[](pair));
+            distance_property.operator[](pair));
       }
     }
 

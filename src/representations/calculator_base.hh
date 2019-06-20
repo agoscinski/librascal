@@ -118,8 +118,11 @@ namespace rascal {
     template<template <class> class Property, class StructureManager>
     inline decltype(auto) get_property(
           std::shared_ptr<StructureManager>& manager,
-          const std::string& property_name) {
+          const std::string& property_name) {      
+      // TODO(alex)
+      //return manager->get_property_ref<Property<StructureManager>>(property_name, true);
       // check if the property already exist and create it if it does not
+      return manager->template get_property_ref<Property<StructureManager>>(property_name);
       if (not manager->has_property(property_name)) {
         manager->template create_property<
             Property<StructureManager>>(property_name);
