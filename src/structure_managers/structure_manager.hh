@@ -377,7 +377,7 @@ namespace rascal {
     }
 
     //! Accessor for an attached property with a specifier as a string
-    std::shared_ptr<PropertyBase> get_property(const std::string & name) const {
+    std::shared_ptr<PropertyBase> get_existing_property_ptr(const std::string & name) const {
       if (not this->has_property(name)) {
         std::stringstream error{};
         error << "No property of name '" << name << "' has been registered";
@@ -392,7 +392,7 @@ namespace rascal {
      */
     template <typename UserProperty_t>
     bool check_property_t(const std::string & name) const {
-      auto property = get_property(name);
+      auto property = this->get_existing_property_ptr(name);
       try {
         UserProperty_t::check_compatibility(*property);
       } catch (const std::runtime_error & error) {
@@ -420,7 +420,7 @@ namespace rascal {
 
     template <typename UserProperty_t>
     void validate_property_t(const std::string & name) const {
-      auto property = this->get_property(name);
+      auto property = this->get_existing_property_ptr(name);
       this->template validate_property_t<UserProperty_t>(property);
     }
 
@@ -433,7 +433,7 @@ namespace rascal {
     template <typename UserProperty_t>
     UserProperty_t &
     get_validated_property_ref(const std::string & name) const {
-      auto property = this->get_property(name);
+      auto property = this->get_existing_property_ptr(name);
       this->template validate_property_t<UserProperty_t>(property);
       auto property_ptr =
           static_cast<UserProperty_t *>(property.get());
@@ -444,15 +444,12 @@ namespace rascal {
      */
     template <typename UserProperty_t>
     std::shared_ptr<UserProperty_t>
-    get_validated_property(const std::string & name) const {
-      auto property = this->get_property(name);
+    get_validated_property_ptr(const std::string & name) const {
+      auto property = this->get_existing_property_ptr(name);
       this->template validate_property_t<UserProperty_t>(property);
       return std::static_pointer_cast<UserProperty_t>(property);
     }
 
-    void register_property(std::shared_ptr<PropertyBase> property, const std::string & name) {
-      this->properties[name] = property;
-    }
     /**
      * Get a property of a given name. Create it if it does not exist.
      *
@@ -466,12 +463,12 @@ namespace rascal {
     template <typename UserProperty_t>
     std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name) {
       if (this->has_property(name)) {
-        auto property{this->get_property(name)};
+        auto property{this->get_existing_property_ptr(name)};
         UserProperty_t::check_compatibility(*property);
         return std::static_pointer_cast<UserProperty_t>(property);
       } else {
         auto property{std::make_shared<UserProperty_t>(this->implementation())};
-        this->register_property(property, name);
+        this->properties[name] = property;
         return property;
       }
     }
@@ -479,14 +476,6 @@ namespace rascal {
     template <typename UserProperty_t>
     UserProperty_t & get_property_ref(const std::string & name) {
       return *this->template get_property_ptr<UserProperty_t>(name);
-    }
-
-    template <typename T, size_t Order, Dim_t NbRow = 1, Dim_t NbCol = 1>
-    std::shared_ptr<Property_t<T, Order, NbRow, NbCol>>
-    get_property(const std::string & name) const {
-      return this
-          ->template get_validated_property<Property_t<T, Order, NbRow, NbCol>>(
-              name);
     }
 
     inline void set_updated_property_status(const bool& is_updated) {

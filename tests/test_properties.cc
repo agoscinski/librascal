@@ -28,6 +28,7 @@
  */
 
 #include "test_properties.hh"
+#include "structure_managers/adaptor_strict.hh"
 
 namespace rascal {
   // TODO(felix) TODO(alex) test dynamic sized Property completely
@@ -562,6 +563,73 @@ namespace rascal {
       std::cout << Fix::manager->get_name();
       std::cout << " finished." << std::endl;
     }
+  }
+
+  BOOST_FIXTURE_TEST_CASE(create_and_get_property_test,
+      AtomPropertyFixture<StructureManagerCentersStackFixture>) {
+    bool verbose{true};
+    if (verbose) {
+      std::cout << ">> create_and_get_property_test for manager ";
+      std::cout << manager->get_name();
+      std::cout << " starts now." << std::endl;
+    }
+    using ThisProperty_t = AtomScalarProperty_t;
+    
+    // create property
+    this->manager->create_property<ThisProperty_t>("test");
+
+    // gets property once as ptr and once as ref
+    std::shared_ptr<PropertyBase> base{
+        this->manager->get_existing_property_ptr("test")};
+    std::shared_ptr<ThisProperty_t> ptr{this->manager->get_validated_property_ptr<ThisProperty_t>("test")};
+    ThisProperty_t & ref{this->manager->get_validated_property_ref<ThisProperty_t>("test")};
+    
+    if (verbose) {
+      std::cout << ">> Fill property by pointer." << std::endl;
+    }
+    size_t counter{0};
+    for (auto atom : this->manager) {
+      ptr->operator[](atom) = counter;
+      counter++;
+    }
+
+    if (verbose) {
+      std::cout << ">> Check property by ref." << std::endl;
+    }
+    counter = 0;
+    for (auto atom : this->manager) {
+      BOOST_CHECK_EQUAL(ref.operator[](atom), counter);
+      counter++;
+    }
+
+    if (verbose) {
+      std::cout << " finished." << std::endl;
+    }
+  }
+
+  BOOST_FIXTURE_TEST_CASE(get_distance_test,
+      AdaptorStrictStackFixture<ANLWithGhosts_SMC_StackFixture>) {
+    bool verbose{false};
+    if (verbose) {
+      std::cout << ">> get_distance_test for manager ";
+      std::cout << manager->get_name();
+      std::cout << " starts now." << std::endl;
+    }
+    //using Distance_t = typename  AdaptorStrict<StructureManagerCenters>::Distance_t;
+    using Distance_t = typename Manager_t::template Property_t<double, 2, 1>;
+    auto distance_property{this->manager->get_validated_property_ptr<Distance_t>};
+    double distance;
+    for (auto atom : this->manager) {
+      for (auto pair : atom) {
+        BOOST_CHECK_EQUAL(this->manager->get_distance(pair),
+            distance_property->operator[](pair));
+      }
+    }
+
+    if (verbose) {
+      std::cout << " finished." << std::endl;
+    }
+
   }
 
   /* ---------------------------------------------------------------------- */

@@ -53,7 +53,6 @@ namespace rascal {
     using Hypers_t = typename Manager_t::Hypers_t;
     using traits = typename Manager_t::traits;
     using Data_t = std::vector<ManagerPtr_t>;
-    using math::Matrix_t;
 
    protected:
     Data_t managers{};
