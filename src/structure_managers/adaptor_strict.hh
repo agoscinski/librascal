@@ -236,6 +236,11 @@ namespace rascal {
       return this->manager->get_shared_ptr();
     }
 
+    template <typename UserProperty_t>
+    UserProperty_t & get_property_ref(const std::string & name) {
+      return *this->template get_property_ptr<UserProperty_t>(name);
+    }
+
     // BUG8486@(till) I deleted the non const getters, because they are not
     // needed
     // if this was wrong, please explain

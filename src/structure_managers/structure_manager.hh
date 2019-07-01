@@ -437,13 +437,13 @@ namespace rascal {
     /*  Returns the typed property. Throws an error if property type given from
      *  user does not match actual property type.
      */
-    template <typename UserProperty_t>
-    std::shared_ptr<UserProperty_t>
-    get_validated_property_ptr(const std::string & name) const {
-      auto property = this->get_existing_property_ptr(name);
-      this->template validate_property_t<UserProperty_t>(property);
-      return std::static_pointer_cast<UserProperty_t>(property);
-    }
+    //template <typename UserProperty_t>
+    //std::shared_ptr<UserProperty_t>
+    //get_validated_property_ptr(const std::string & name) const {
+    //  auto property = this->get_existing_property_ptr(name);
+    //  this->template validate_property_t<UserProperty_t>(property);
+    //  return std::static_pointer_cast<UserProperty_t>(property);
+    //}
 
     /**
      * Get a property of a given name. Create it if it does not exist.
@@ -456,7 +456,7 @@ namespace rascal {
      * of the given name
      */
     template <typename UserProperty_t>
-    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name) {
+    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name, ) {
       if (this->has_property(name)) {
         auto property{this->get_existing_property_ptr(name)};
         UserProperty_t::check_compatibility(*property);
@@ -467,23 +467,26 @@ namespace rascal {
         return property;
       }
     }
+
     // TODO(felix) this is my suggestion for the property function
     // with force creation true if the property does not exist.
     // There is some code repition which can be removed when we agree on
     // how to implement the force creation
-    //template <typename UserProperty_t>
-    //std::shared_ptr<UserProperty_t> get_validated_property_ptr(const std::string & name, const bool & force_creation=false) {
-    //  if (not(this->has_property(name))) {
-    //    if (not(force_creation)) {
-    //      std::stringstream error{};
-    //      error << "No property of name '" << name << "' has been registered";
-    //      throw std::runtime_error(error.str());
-    //    } else {
-    //      this->create_property<UserProperty_t>(name);
-    //    }
-    //  }
-    //  return this->get_validated_property_ptr<UserProperty_t>(name);
-    //}
+    template <typename UserProperty_t>
+    std::shared_ptr<UserProperty_t> get_validated_property_ptr(const std::string & name, const bool & force_creation=false) {
+      if (not(this->has_property(name))) {
+        if (not(force_creation)) {
+          std::stringstream error{};
+          error << "No property of name '" << name << "' has been registered";
+          throw std::runtime_error(error.str());
+        } else {
+          this->create_property<UserProperty_t>(name);
+        }
+      }
+      auto property = this->properties.at(name);
+      this->template validate_property_t<UserProperty_t>(property);
+      return std::static_pointer_cast<UserProperty_t>(property);
+    }
 
     template <typename UserProperty_t>
     UserProperty_t & get_property_ref(const std::string & name) {

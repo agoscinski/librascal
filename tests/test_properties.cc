@@ -451,7 +451,7 @@ namespace rascal {
    */
   BOOST_FIXTURE_TEST_CASE_TEMPLATE(
       atom_vector_property_access_with_triple_tests, Fix,
-      triple_property_fixtures, Fix) {
+     triple_property_fixtures, Fix) {
     bool verbose{false};
     if (verbose) {
       std::cout << ">> Test for manager ";
@@ -567,31 +567,33 @@ namespace rascal {
 
   // TODO(alex) add default distance function
   // TODO(alex) template tests
-  BOOST_FIXTURE_TEST_CASE(create_and_get_property_test,
-      AtomPropertyFixture<StructureManagerCentersStackFixture>) {
+  BOOST_FIXTURE_TEST_CASE_TEMPLATE(create_and_get_property_tests, Fix,
+                                   atom_vector_property_fixtures , Fix) {
     bool verbose{false};
+    auto manager{Fix::manager};
     if (verbose) {
-      std::cout << ">> create_and_get_property_test for manager ";
+      std::cout << ">> Test create_and_get_property_test for manager ";
       std::cout << manager->get_name();
       std::cout << " starts now." << std::endl;
     }
-    using ThisProperty_t = AtomScalarProperty_t;
+    // TODO(alex) rename
+    using ThisProperty_t = AtomPropertyFixture<StructureManagerCentersStackFixture>::AtomScalarProperty_t;
     
     // create property
-    this->manager->create_property<ThisProperty_t>("test");
+    Fix::manager->template create_property<ThisProperty_t>("test");
 
     // gets property once as ptr and once as ref
     std::shared_ptr<PropertyBase> base{
-        this->manager->get_existing_property_ptr("test")};
-    std::shared_ptr<ThisProperty_t> ptr{this->manager->get_validated_property_ptr<ThisProperty_t>("test")};
-    ThisProperty_t & ref{this->manager->get_validated_property_ref<ThisProperty_t>("test")};
+        manager->get_existing_property_ptr("test")};
+    std::shared_ptr<ThisProperty_t> ptr{manager->template get_validated_property_ptr<ThisProperty_t>("test")};
+    ThisProperty_t & ref{manager->template get_validated_property_ref<ThisProperty_t>("test")};
     
     if (verbose) {
       std::cout << ">> Fill property by pointer." << std::endl;
     }
     ptr.get()->resize(false);
     size_t counter{0};
-    for (auto atom : this->manager) {
+    for (auto atom : manager) {
       ptr.get()->operator[](atom) = counter;
       counter++;
     }
@@ -600,7 +602,7 @@ namespace rascal {
       std::cout << ">> Check property by ref." << std::endl;
     }
     counter = 0;
-    for (auto atom : this->manager) {
+    for (auto atom : manager) {
       BOOST_CHECK_EQUAL(ref.operator[](atom), counter);
       counter++;
     }
