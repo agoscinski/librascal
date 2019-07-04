@@ -347,12 +347,6 @@ namespace rascal {
      */
     void attach_property(const std::string & name,
                          std::shared_ptr<PropertyBase> property) {
-      if (this->has_property(name)) {
-        std::stringstream error{};
-        error << "A property of name '" << name
-              << "' has already been registered";
-        throw std::runtime_error(error.str());
-      }
       this->properties[name] = property;
       this->property_fresh[name] = false;
     }
@@ -367,7 +361,13 @@ namespace rascal {
 
     template <typename Property_t>
     void create_property(const std::string & name) {
-      auto property{std::make_shared<Property_t>(this->implementation())};
+      if (this->has_property(name)) {
+        std::stringstream error{};
+        error << "A property of name '" << name
+              << "' has already been registered";
+        throw std::runtime_error(error.str());
+      }
+      auto property{std::make_shared<Property_t>(static_cast<ManagerImplementation &>(*this))};
       this->attach_property(name, property);
     }
 
@@ -376,23 +376,19 @@ namespace rascal {
       return create_property<Property_t<T, Order, NbRow, NbCol>>(name);
     }
 
-    //! Accessor for an attached property with a specifier as a string
-    std::shared_ptr<PropertyBase> get_existing_property_ptr(const std::string & name) const {
-      if (not this->has_property(name)) {
-        std::stringstream error{};
-        error << "No property of name '" << name << "' has been registered";
-        throw std::runtime_error(error.str());
-      }
-      return this->properties.at(name);
-    }
-
     /**
      *  Checks if the property type of user matches the actual stored
      *  property.
      */
     template <typename UserProperty_t>
     bool check_property_t(const std::string & name) const {
-      auto property = this->get_existing_property_ptr(name);
+      if (this->has_property(name)) {
+        std::stringstream error{};
+        error << "A property of name '" << name
+              << "' has already been registered";
+        throw std::runtime_error(error.str());
+      }
+      auto property = this->properties.at(name);
       try {
         UserProperty_t::check_compatibility(*property);
       } catch (const std::runtime_error & error) {
@@ -404,7 +400,7 @@ namespace rascal {
     /**
      * Throws an error if property type given from user does not match actual
      * property type.
-     * TO(all) Is the try and catch need here ? it will throw in the respective
+     * TODO(all) Is the try and catch need here ? it will throw in the respective
      * check_compatibility and we get the full stack with the debugger.
      */
     template <typename UserProperty_t>
@@ -420,30 +416,14 @@ namespace rascal {
 
     template <typename UserProperty_t>
     void validate_property_t(const std::string & name) const {
-      auto property = this->get_existing_property_ptr(name);
+      auto property = this->template get_property_ptr<UserProperty_t>(name);
       this->template validate_property_t<UserProperty_t>(property);
-    }
-
-    template <typename UserProperty_t>
-    UserProperty_t &
-    get_validated_property_ref(const std::string & name) const {
-      auto property = this->get_existing_property_ptr(name);
-      this->template validate_property_t<UserProperty_t>(property);
-      auto property_ptr =
-          static_cast<UserProperty_t *>(property.get());
-      return *property_ptr;
     }
 
     /*  Returns the typed property. Throws an error if property type given from
      *  user does not match actual property type.
      */
-    //template <typename UserProperty_t>
-    //std::shared_ptr<UserProperty_t>
-    //get_validated_property_ptr(const std::string & name) const {
-    //  auto property = this->get_existing_property_ptr(name);
-    //  this->template validate_property_t<UserProperty_t>(property);
-    //  return std::static_pointer_cast<UserProperty_t>(property);
-    //}
+
 
     /**
      * Get a property of a given name. Create it if it does not exist.
@@ -456,16 +436,25 @@ namespace rascal {
      * of the given name
      */
     template <typename UserProperty_t>
-    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name, ) {
-      if (this->has_property(name)) {
-        auto property{this->get_existing_property_ptr(name)};
-        UserProperty_t::check_compatibility(*property);
-        return std::static_pointer_cast<UserProperty_t>(property);
-      } else {
-        auto property{std::make_shared<UserProperty_t>(this->implementation())};
-        this->properties[name] = property;
-        return property;
+    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name, 
+        const bool & force_creation=false) {
+      if (not(this->has_property(name))) {
+        if (not(force_creation)) {
+          std::stringstream error{};
+          error << "No property of name '" << name << "' has been registered";
+          throw std::runtime_error(error.str());
+        } else {
+          auto property{std::make_shared<UserProperty_t>(static_cast<ManagerImplementation &>(*this))};
+          this->attach_property(name, property);
+        }
       }
+      return std::static_pointer_cast<UserProperty_t>(this->properties.at(name));
+    }
+
+    template <typename UserProperty_t>
+    UserProperty_t & get_property_ref(const std::string & name,
+        const bool & force_creation=false) {
+      return *this->template get_property_ptr<UserProperty_t>(name, force_creation);
     }
 
     // TODO(felix) this is my suggestion for the property function
@@ -473,26 +462,23 @@ namespace rascal {
     // There is some code repition which can be removed when we agree on
     // how to implement the force creation
     template <typename UserProperty_t>
-    std::shared_ptr<UserProperty_t> get_validated_property_ptr(const std::string & name, const bool & force_creation=false) {
-      if (not(this->has_property(name))) {
-        if (not(force_creation)) {
-          std::stringstream error{};
-          error << "No property of name '" << name << "' has been registered";
-          throw std::runtime_error(error.str());
-        } else {
-          this->create_property<UserProperty_t>(name);
-        }
-      }
-      auto property = this->properties.at(name);
+    std::shared_ptr<UserProperty_t> get_validated_property_ptr(
+        const std::string & name, const bool & force_creation=false) {
+      auto property = this->template get_property_ptr<UserProperty_t>(
+          name, force_creation);
       this->template validate_property_t<UserProperty_t>(property);
       return std::static_pointer_cast<UserProperty_t>(property);
     }
 
     template <typename UserProperty_t>
-    UserProperty_t & get_property_ref(const std::string & name) {
-      return *this->template get_property_ptr<UserProperty_t>(name);
+    UserProperty_t &
+    get_validated_property_ref(const std::string & name,
+        const bool & force_creation=false) {
+      return *this->template get_validated_property_ptr<UserProperty_t>(
+          name, force_creation);
     }
 
+    // TODO(felix) remove freshness and keep updatability or the other way around?
     inline void set_updated_property_status(const bool& is_updated) {
       for (auto& element : this->properties) {
         auto& property{element.second};

@@ -665,6 +665,7 @@ namespace rascal {
       return this->manager->get_shared_ptr();
     }
 
+
    protected:
     /* ---------------------------------------------------------------------- */
     /**
