@@ -351,6 +351,12 @@ namespace rascal {
       this->property_fresh[name] = false;
     }
 
+    template <typename Property_t>
+    void create_property(const std::string & name) {
+      auto property{std::make_shared<Property_t>(this->implementation())};
+      this->attach_property(name, property);
+    }
+
     /**
      * Helper function to check if a property with the specifier `name` has
      * already been attached.
@@ -359,22 +365,20 @@ namespace rascal {
       return not(this->properties.find(name) == this->properties.end());
     }
 
-    template <typename Property_t>
-    void create_property(const std::string & name) {
+    template <typename UserProperty_t>
+    void add_property(const std::string & name) {
       if (this->has_property(name)) {
         std::stringstream error{};
         error << "A property of name '" << name
               << "' has already been registered";
         throw std::runtime_error(error.str());
       }
-      // TODO(alex)  this->implementation and produce_property
-      auto property{std::make_shared<Property_t>(static_cast<ManagerImplementation &>(*this))};
-      this->attach_property(name, property);
+      this->create_property<UserProperty_t>(name);
     }
 
     template <typename T, size_t Order, Dim_t NbRow = 1, Dim_t NbCol = 1>
-    void create_property(const std::string & name) {
-      return create_property<Property_t<T, Order, NbRow, NbCol>>(name);
+    void add_property(const std::string & name) {
+      return this->add_property<Property_t<T, Order, NbRow, NbCol>>(name);
     }
 
     /**
@@ -421,20 +425,15 @@ namespace rascal {
       this->template validate_property_t<UserProperty_t>(property);
     }
 
-    /*  Returns the typed property. Throws an error if property type given from
-     *  user does not match actual property type.
-     */
-
-
     /**
-     * Get a property of a given name. Create it if it does not exist.
+     * Returns a typed property with the given name. Depending on the force_creation flag, the property is created, if it does not exists.
      *
      * @tparam UserProperty_t full type of the property to return
      *
-     * @param name name of the property to get
+     * @param name Name of the property to get
+     * @param force_creation If true, the property is created when not existing.
      *
-     * @throw runtime_error if UserProperty_t is not compatible with property
-     * of the given name
+     * @throw runtime_error if property does not exist and force_creation flag is false.
      */
     template <typename UserProperty_t>
     std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name, 
@@ -445,9 +444,7 @@ namespace rascal {
           error << "No property of name '" << name << "' has been registered";
           throw std::runtime_error(error.str());
         } else {
-          //TODO(alex) replace with this->implementation()
-          auto property{std::make_shared<UserProperty_t>(static_cast<ManagerImplementation &>(*this))};
-          this->attach_property(name, property);
+          this->create_property<UserProperty_t>(name);
         }
       }
       return std::static_pointer_cast<UserProperty_t>(this->properties.at(name));
@@ -459,10 +456,19 @@ namespace rascal {
       return *this->template get_property_ptr<UserProperty_t>(name, force_creation);
     }
 
-    // TODO(felix) this is my suggestion for the property function
-    // with force creation true if the property does not exist.
-    // There is some code repition which can be removed when we agree on
-    // how to implement the force creation
+
+    /**
+     * Returns a typed and validated property with the given name. Depending on the force_creation flag, the property is created, if it does not exists.
+     *
+     * @tparam UserProperty_t full type of the property to return
+     *
+     * @param name name of the property to get
+     *
+     * @throw runtime_error if property does not exist and force_creation flag is false.
+     *
+     * @throw runtime_error if UserProperty_t is not compatible with property
+     * type of the given name
+     */
     template <typename UserProperty_t>
     std::shared_ptr<UserProperty_t> get_validated_property_ptr(
         const std::string & name, const bool & force_creation=false) {
