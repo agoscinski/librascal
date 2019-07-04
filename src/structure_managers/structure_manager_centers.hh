@@ -73,6 +73,7 @@ namespace rascal {
     constexpr static bool HasDirectionVectors{false};
     constexpr static bool HasDistances{false};
     using LayerByOrder = std::index_sequence<0>;
+    typedef StructureManagerCenters PreviousManager_t;
   };
 
   /**
@@ -80,7 +81,7 @@ namespace rascal {
    * to the convention of using 'StructureManagerYours', where 'Yours' will give
    * a hint of what it is about.
    */
-  class StructureManagerCenters :
+  class StructureManagerCenters : 
       // public inheritance of the base class
       public StructureManager<StructureManagerCenters>,
       public std::enable_shared_from_this<StructureManagerCenters> {
@@ -95,6 +96,7 @@ namespace rascal {
     using Vector_ref = typename Parent::Vector_ref;
     using AtomRef_t = typename Parent::AtomRef;
     using Children_t = typename Parent::Children_t;
+    typedef typename traits::PreviousManager_t PreviousManager_t;
     using ImplementationPtr_t = std::shared_ptr<StructureManagerCenters>;
 
     /**
@@ -306,6 +308,10 @@ namespace rascal {
 
     //! overload of update that does not change the underlying structure
     void update_self() {}
+
+    std::shared_ptr<PreviousManager_t> get_previous_manager_impl() {
+      return shared_from_this();
+    }
 
    protected:
     //! makes atom tag lists and offsets

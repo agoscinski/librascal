@@ -63,6 +63,7 @@ namespace rascal {
                MaxOrder,
                typename ManagerImplementation::traits::LayerByOrder>::type{})};
     using LayerByOrder = std::index_sequence<AtomLayer, 0>;
+    typedef ManagerImplementation PreviousManager_t;
   };
 
   /**

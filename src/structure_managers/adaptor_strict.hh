@@ -55,6 +55,7 @@ namespace rascal {
     constexpr static size_t MaxOrder{ManagerImplementation::traits::MaxOrder};
     using LayerByOrder = typename LayerIncreaser<
         MaxOrder, typename ManagerImplementation::traits::LayerByOrder>::type;
+    typedef ManagerImplementation PreviousManager_t;
   };
 
   /**

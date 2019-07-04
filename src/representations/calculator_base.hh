@@ -115,6 +115,7 @@ namespace rascal {
      * fill it with a new representation.
      * it return a reference to the typed property of property_name
      */
+    // TODO(alex)
     template<template <class> class Property, class StructureManager>
     inline decltype(auto) get_property(
           std::shared_ptr<StructureManager>& manager,

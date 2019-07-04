@@ -63,6 +63,7 @@ namespace rascal {
     // Extend the layer by one with the new MaxOrder
     using LayerByOrder = typename LayerExtender<
         MaxOrder, typename ManagerImplementation::traits::LayerByOrder>::type;
+    typedef ManagerImplementation PreviousManager_t;
   };
 
   /* ---------------------------------------------------------------------- */

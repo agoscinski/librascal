@@ -181,6 +181,7 @@ namespace rascal {
    public:
     using StructureManager_t = StructureManager<ManagerImplementation>;
     using traits = StructureManager_traits<ManagerImplementation>;
+    typedef typename traits::PreviousManager_t PreviousManager_t;
     //! type used to represent spatial coordinates, etc
     using Vector_t = Eigen::Matrix<double, traits::Dim, 1>;
     using Vector_ref = Eigen::Map<Vector_t>;
@@ -663,6 +664,10 @@ namespace rascal {
     inline const ClusterIndex_t & get_cluster_indices_container() const {
       return this->cluster_indices_container;
     }
+    
+    std::shared_ptr<PreviousManager_t> get_previous_manager() {
+      return this->implementation().get_previous_manager_impl();
+    }
 
     /**
      * Tuple which contains MaxOrder number of cluster_index lists for
@@ -672,7 +677,7 @@ namespace rascal {
      * in adaptors accordingly via the lower level indices and a
      * Order-dependend index is appended to the array.
      */
-    ClusterIndex_t cluster_indices_container;
+    ClusterIndex_t cluster_indices_container;  
 
     std::map<std::string, std::shared_ptr<PropertyBase>> properties{};
     std::map<std::string, bool> property_fresh{};

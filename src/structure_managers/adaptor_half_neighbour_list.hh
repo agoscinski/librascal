@@ -58,6 +58,7 @@ namespace rascal {
         AdaptorTraits::NeighbourListType::half};
     using LayerByOrder = typename LayerIncreaser<
         MaxOrder, typename ManagerImplementation::traits::LayerByOrder>::type;
+    typedef ManagerImplementation PreviousManager_t;
   };
 
   /**

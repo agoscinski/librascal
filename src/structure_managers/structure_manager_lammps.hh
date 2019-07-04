@@ -51,6 +51,7 @@ namespace rascal {
     constexpr static bool HasDistances{false};
     constexpr static bool HasDirectionVectors{false};
     using LayerByOrder = std::index_sequence<0, 0>;
+    typedef StructureManagerLammps PreviousManager_t;
   };
 
   /* ---------------------------------------------------------------------- */
@@ -63,6 +64,7 @@ namespace rascal {
     using Parent = StructureManager<StructureManagerLammps>;
     using Vector_ref = typename Parent::Vector_ref;
     using AtomRef_t = typename Parent::AtomRef;
+    typedef typename traits::PreviousManager_t PreviousManager_t;
     using ImplementationPtr_t = std::shared_ptr<StructureManagerLammps>;
 
     //! Default constructor
@@ -219,6 +221,10 @@ namespace rascal {
     void update_self(const int & inum, const int & tot_num, int * ilist,
                      int * numneigh, int ** firstneigh, double ** x,
                      double ** f, int * type, double * eatom, double ** vatom);
+
+    std::shared_ptr<PreviousManager_t> get_previous_manager_impl() {
+      return shared_from_this();
+    }
 
    protected:
     int inum{};           //!< total numer of atoms
