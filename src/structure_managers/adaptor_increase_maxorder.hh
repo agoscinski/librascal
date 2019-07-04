@@ -52,7 +52,8 @@ namespace rascal {
   template <class ManagerImplementation>
   struct StructureManager_traits<AdaptorMaxOrder<ManagerImplementation>> {
     constexpr static AdaptorTraits::Strict Strict{AdaptorTraits::Strict::no};
-    constexpr static bool HasDistances{false};
+    constexpr static bool HasDistances{
+        ManagerImplementation::traits::HasDistances};
     constexpr static bool HasDirectionVectors{
         ManagerImplementation::traits::HasDirectionVectors};
     constexpr static int Dim{ManagerImplementation::traits::Dim};
@@ -251,6 +252,22 @@ namespace rascal {
       }
     }
 
+    template <size_t Order, size_t Layer,
+        bool HasDistances = traits::HasDistances,
+        typename std::enable_if_t<HasDistances, int> = 0>
+    inline double &
+    get_distance(const ClusterRefKey<Order, Layer> & pair) const {
+      return this->get_previous_manager->get_distance(pair);
+    }
+
+    template <size_t Order, size_t Layer,
+        bool HasDistances = traits::HasDistances,
+        typename std::enable_if_t<not(HasDistances), int> = 0>
+    inline double &
+    get_distance(const ClusterRefKey<Order, Layer> & pair) const {
+      throw std::runtime_error("Trying to get_distance from a struture manager stack without computed distances");
+      return 0;
+    }
     //! Get the manager used to build the instance
     ImplementationPtr_t get_previous_manager() {
       return this->manager->get_shared_ptr();

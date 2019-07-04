@@ -367,6 +367,7 @@ namespace rascal {
               << "' has already been registered";
         throw std::runtime_error(error.str());
       }
+      // TODO(alex)  this->implementation and produce_property
       auto property{std::make_shared<Property_t>(static_cast<ManagerImplementation &>(*this))};
       this->attach_property(name, property);
     }
@@ -444,6 +445,7 @@ namespace rascal {
           error << "No property of name '" << name << "' has been registered";
           throw std::runtime_error(error.str());
         } else {
+          //TODO(alex) replace with this->implementation()
           auto property{std::make_shared<UserProperty_t>(static_cast<ManagerImplementation &>(*this))};
           this->attach_property(name, property);
         }
