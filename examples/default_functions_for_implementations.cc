@@ -44,8 +44,9 @@ template <>
 struct traits<RootImplementation> {
   typedef RootImplementation underlying_manager_t;
 };
+
 // using Interface's id with constructor
-class RootImplementation : public Interface<RootImplementation> {
+class RootImplementation : public Interface<RootImplementation>, public std::enable_shared_from_this<RootImplementation> {
 
  public:
   using this_traits = traits<RootImplementation>;
@@ -58,7 +59,12 @@ class RootImplementation : public Interface<RootImplementation> {
   int get_id(){
    return this->id; // this gets Interface's id
   }
-  std::shared_ptr<underlying_manager_t> get_underlying_manager_impl() {return std::make_shared<underlying_manager_t>(*this);}
+  std::shared_ptr<underlying_manager_t> get_underlying_manager_impl() {
+    // this line wrongly first created a new instance and then wrapped it in a shared ptr
+    // instead of only wrapping this in a shared ptr
+    // return std::make_shared<underlying_manager_t>(*this);
+    return shared_from_this();
+  }
 };
 
 template <class Impl>
