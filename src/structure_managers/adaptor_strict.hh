@@ -77,8 +77,9 @@ namespace rascal {
    public:
     using Manager_t = AdaptorStrict<ManagerImplementation>;
     using Parent = StructureManager<Manager_t>;
-    using ImplementationPtr_t = std::shared_ptr<ManagerImplementation>;
     using traits = StructureManager_traits<AdaptorStrict>;
+    using PreviousManager_t = typename traits::PreviousManager_t;
+    using ImplementationPtr_t = std::shared_ptr<PreviousManager_t >;
     using AtomRef_t = typename ManagerImplementation::AtomRef_t;
     using Vector_ref = typename Parent::Vector_ref;
     using Hypers_t = typename Parent::Hypers_t;
@@ -233,7 +234,7 @@ namespace rascal {
     }
 
     //! Get the manager used to build the instance
-    ImplementationPtr_t get_previous_manager() {
+    ImplementationPtr_t get_previous_manager_impl() {
       return this->manager->get_shared_ptr();
     }
 
@@ -378,7 +379,7 @@ namespace rascal {
   /*--------------------------------------------------------------------------*/
   template <class ManagerImplementation>
   AdaptorStrict<ManagerImplementation>::AdaptorStrict(
-      std::shared_ptr<ManagerImplementation> manager, double cutoff)
+      ImplementationPtr_t manager, double cutoff)
       : manager{std::move(manager)}, distance{std::make_shared<Distance_t>(
                                          *this)},
         dir_vec{std::make_shared<DirectionVector_t>(*this)}, cutoff{cutoff},

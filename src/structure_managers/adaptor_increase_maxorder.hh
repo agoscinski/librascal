@@ -81,8 +81,9 @@ namespace rascal {
    public:
     using Manager_t = AdaptorMaxOrder<ManagerImplementation>;
     using Parent = StructureManager<Manager_t>;
-    using ImplementationPtr_t = std::shared_ptr<ManagerImplementation>;
     using traits = StructureManager_traits<AdaptorMaxOrder>;
+    using PreviousManager_t = typename traits::PreviousManager_t;
+    using ImplementationPtr_t = std::shared_ptr<PreviousManager_t >;
     using AtomRef_t = typename ManagerImplementation::AtomRef_t;
     template <size_t Order>
     using ClusterRef_t =
@@ -270,7 +271,7 @@ namespace rascal {
       return 0;
     }
     //! Get the manager used to build the instance
-    ImplementationPtr_t get_previous_manager() {
+    ImplementationPtr_t get_previous_manager_impl() {
       return this->manager->get_shared_ptr();
     }
 
@@ -326,7 +327,7 @@ namespace rascal {
   //! Constructor of the next level manager
   template <class ManagerImplementation>
   AdaptorMaxOrder<ManagerImplementation>::AdaptorMaxOrder(
-      std::shared_ptr<ManagerImplementation> manager)
+      ImplementationPtr_t manager)
       : manager{std::move(manager)}, nb_neigh{},
         neighbours_atom_tag{}, offsets{} {
     if (traits::MaxOrder < 3) {

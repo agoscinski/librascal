@@ -76,8 +76,9 @@ namespace rascal {
    public:
     using Manager_t = AdaptorHalfList<ManagerImplementation>;
     using Parent = StructureManager<Manager_t>;
-    using ImplementationPtr_t = std::shared_ptr<ManagerImplementation>;
     using traits = StructureManager_traits<AdaptorHalfList>;
+    using PreviousManager_t = typename traits::PreviousManager_t;
+    using ImplementationPtr_t = std::shared_ptr<PreviousManager_t >;
     using parent_traits = typename ManagerImplementation::traits;
     using AtomRef_t = typename ManagerImplementation::AtomRef_t;
     using Vector_ref = typename Parent::Vector_ref;
@@ -272,7 +273,7 @@ namespace rascal {
     }
 
     //! Get the manager used to build the instance
-    ImplementationPtr_t get_previous_manager() {
+    ImplementationPtr_t get_previous_manager_impl() {
       return this->manager->get_shared_ptr();
     }
 
@@ -300,7 +301,7 @@ namespace rascal {
   //! constructor implementations
   template <class ManagerImplementation>
   AdaptorHalfList<ManagerImplementation>::AdaptorHalfList(
-      std::shared_ptr<ManagerImplementation> manager)
+      ImplementationPtr_t manager)
       : manager{std::move(manager)}, nb_neigh{},
         neighbours_atom_tag{}, offsets{} {
     // this->manager->add_child(this->get_weak_ptr());
