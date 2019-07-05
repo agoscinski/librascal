@@ -353,7 +353,6 @@ namespace rascal {
     void attach_property(const std::string & name,
                          std::shared_ptr<PropertyBase> property) {
       this->properties[name] = property;
-      this->property_fresh[name] = false;
     }
 
     template <typename Property_t>
@@ -532,9 +531,6 @@ namespace rascal {
       return *this->template get_property_ptr<UserProperty_t>(name, validate_property);
     }
 
-
-
-    // TODO(felix) remove freshness and keep updatability or the other way around?
     inline void set_updated_property_status(const bool& is_updated) {
       for (auto& element : this->properties) {
         auto& property{element.second};
@@ -544,23 +540,6 @@ namespace rascal {
 
     inline void set_updated_property_status(const std::string & name, const bool& is_updated) {
       this->properties[name]->set_updated_status(is_updated);
-    }
-
-    /**
-     * Attach update status to property. It is necessary, because the underlying
-     * structure might change and then the calculated property might be out of
-     * sync with the structure.
-     */
-    void set_property_fresh(const std::string & name) {
-      this->property_fresh[name] = true;
-    }
-
-    /**
-     * Check if the status of the property is in sync with the underlying
-     * structure
-     */
-    bool is_property_fresh(const std::string & name) {
-      return this->property_fresh[name];
     }
 
     //! Get the full type of the structure manager
@@ -759,7 +738,6 @@ namespace rascal {
     ClusterIndex_t cluster_indices_container;  
 
     std::map<std::string, std::shared_ptr<PropertyBase>> properties{};
-    std::map<std::string, bool> property_fresh{};
    private:
     /**
      * Returns the property of the given name. Assumes that the property exists, therefore applies no checks.
