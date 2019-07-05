@@ -388,11 +388,9 @@ namespace rascal {
     void validate_existence_of_property_in_manager_stack(const std::string & name) {
       if (this->is_property_in_manager_stack(name)) {
         std::stringstream error{};
-        //TODO(felix) can you tell me(alex) how to print this->manager name
-        // or some other way to inform the user where the property has been found.
-        // Because this function goes through the stack of managers.
         error << "A property of name '" << name
-              << "' has already been registered";
+              << "' has already been registered"
+              << " in manager '" << this->name << "'";
         throw std::runtime_error(error.str());
       }
     }
@@ -448,34 +446,42 @@ namespace rascal {
     }
 
     /**
-     * Returns a typed property with the given name. Depending on the force_creation flag, the property is created, if it does not exists.
+     * Returns a typed property with the given name. 
      *
      * @tparam UserProperty_t full type of the property to return
      *
      * @param name Name of the property to get
-     * @param force_creation If true, the property is created when not existing.
      *
      * @throw runtime_error if property does not exist and force_creation flag is false.
      */
-    //template<template <class > class Property, class Manager>
-    //force_get_property_ptr() {
-    //  
-    //}
 
-    template<typename UserProperty_t>
-    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name, 
-        const bool & force_creation) {
-      if (not(force_creation) || this->is_property_in_manager_stack(name)) {
-        return this->get_property_ptr<UserProperty_t>(name);
-      }
-      if (force_creation) {
+    template <typename UserProperty_t>
+    std::shared_ptr<UserProperty_t> force_get_property_ptr_from_top_manager(const std::string & name) {
+      if (not(this->has_property(name))) {
         this->create_property<UserProperty_t>(name);
-        return this->get_property_ptr<UserProperty_t>(name);
       }
-      std::stringstream error{};
-      error << "No property of name '" << name << "' has been registered";
-      throw std::runtime_error(error.str());
+      return this->get_property_ptr<UserProperty_t>(name);
     }
+
+    template<template <typename> typename PartialProperty_t, typename Manager_t>
+    decltype(auto) force_get_property_ptr_from_top_manager(const std::string & name) {
+      using UserProperty_t = PartialProperty_t<Manager_t>;
+      return this->force_get_property_ptr_from_top_manager<UserProperty_t>(name);
+    }
+
+    template <typename UserProperty_t>
+    UserProperty_t & force_get_property_ref_from_top_manager(const std::string & name) {
+      return *this->force_get_property_ptr_from_top_manager<UserProperty_t>(name);
+    }
+
+    template<template <typename> typename PartialProperty_t, typename Manager_t>
+    decltype(auto) force_get_property_ref_from_top_manager(const std::string & name) {
+      using UserProperty_t = PartialProperty_t<Manager_t>;
+      return this->force_get_property_ref_from_top_manager<UserProperty_t>(name);
+    }
+
+
+
 
     template <typename UserProperty_t,
         bool IsRoot = IsRootImplementation,
@@ -500,9 +506,8 @@ namespace rascal {
     }
 
     template <typename UserProperty_t>
-    UserProperty_t & get_property_ref(const std::string & name,
-        const bool & force_creation=false) {
-      return *this->template get_property_ptr<UserProperty_t>(name, force_creation);
+    UserProperty_t & get_property_ref(const std::string & name) {
+      return *this->template get_property_ptr<UserProperty_t>(name);
     }
 
 
@@ -520,19 +525,16 @@ namespace rascal {
      */
     template <typename UserProperty_t>
     std::shared_ptr<UserProperty_t> get_validated_property_ptr(
-        const std::string & name, const bool & force_creation=false) {
-      auto property = this->template get_property_ptr<UserProperty_t>(
-          name, force_creation);
+        const std::string & name) {
+      auto property = this->template get_property_ptr<UserProperty_t>(name);
       this->template validate_property_t<UserProperty_t>(property);
       return std::static_pointer_cast<UserProperty_t>(property);
     }
 
     template <typename UserProperty_t>
     UserProperty_t &
-    get_validated_property_ref(const std::string & name,
-        const bool & force_creation=false) {
-      return *this->template get_validated_property_ptr<UserProperty_t>(
-          name, force_creation);
+    get_validated_property_ref(const std::string & name) {
+      return *this->template get_validated_property_ptr<UserProperty_t>(name);
     }
 
     // TODO(felix) remove freshness and keep updatability or the other way around?

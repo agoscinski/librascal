@@ -120,7 +120,7 @@ namespace rascal {
     inline decltype(auto) get_property(
           std::shared_ptr<StructureManager>& manager,
           const std::string& property_name) {      
-      return manager->template get_validated_property_ref<Property<StructureManager>>(property_name, true);
+      return manager->template force_get_property_ref_from_top_manager<Property, StructureManager>(property_name);
     }
 
     //! returns a string representation of the current options values

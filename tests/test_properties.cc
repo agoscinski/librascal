@@ -612,9 +612,9 @@ namespace rascal {
             AdaptorMaxOrderStackFixture<ANLWithGhosts_SMC_StackFixture>
                 >;
   using has_distance_smc_stack_fixtures = boost::mpl::list<
-            AdaptorStrictStackFixture<ANLWithGhosts_SMC_StackFixture>
-            //AdaptorMaxOrderStackFixture<AdaptorStrictStackFixture<
-            //  ANLWithGhosts_SMC_StackFixture>>
+            AdaptorStrictStackFixture<ANLWithGhosts_SMC_StackFixture>,
+            AdaptorMaxOrderStackFixture<AdaptorStrictStackFixture<
+              ANLWithGhosts_SMC_StackFixture>>
                 >;
   BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_distance_test, Fix, 
       has_distance_smc_stack_fixtures, Fix) {
