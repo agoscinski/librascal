@@ -446,59 +446,81 @@ namespace rascal {
     }
 
     /**
-     * Returns a typed property with the given name. 
+     * Returns a typed property of the given name from the top level manager. If this property does not exist in the top level manager, it is created.
      *
-     * @tparam UserProperty_t full type of the property to return
+     * @tparam UserProperty_t full type of the property to return.
      *
-     * @param name Name of the property to get
+     * @param name Name of the property to get.ß
+     * @param validate_property Property is validated if flag is on. It is compared if each template parameter within the UserProperty is in agreement with the stored property of the given name.
      *
-     * @throw runtime_error if property does not exist and force_creation flag is false.
+     * @throw runtime_error If validate_property is on and UserProperty_t is not compatible with property type of the given name.
      */
-
     template <typename UserProperty_t>
-    std::shared_ptr<UserProperty_t> force_get_property_ptr_from_top_manager(const std::string & name) {
+    std::shared_ptr<UserProperty_t> force_get_property_ptr_from_top_manager(const std::string & name, bool validate_property) {
       if (not(this->has_property(name))) {
         this->create_property<UserProperty_t>(name);
       }
-      return this->get_property_ptr<UserProperty_t>(name);
+      return this->get_property_ptr<UserProperty_t>(name, validate_property);
     }
 
     template<template <typename> typename PartialProperty_t, typename Manager_t>
-    decltype(auto) force_get_property_ptr_from_top_manager(const std::string & name) {
+    decltype(auto) force_get_property_ptr_from_top_manager(const std::string & name, bool validate_property) {
       using UserProperty_t = PartialProperty_t<Manager_t>;
-      return this->force_get_property_ptr_from_top_manager<UserProperty_t>(name);
+      return this->force_get_property_ptr_from_top_manager<UserProperty_t>(name, validate_property);
     }
 
     template <typename UserProperty_t>
-    UserProperty_t & force_get_property_ref_from_top_manager(const std::string & name) {
-      return *this->force_get_property_ptr_from_top_manager<UserProperty_t>(name);
+    UserProperty_t & force_get_property_ref_from_top_manager(const std::string & name, bool validate_property) {
+      return *this->force_get_property_ptr_from_top_manager<UserProperty_t>(name, validate_property);
     }
 
     template<template <typename> typename PartialProperty_t, typename Manager_t>
-    decltype(auto) force_get_property_ref_from_top_manager(const std::string & name) {
+    decltype(auto) force_get_property_ref_from_top_manager(const std::string & name, bool validate_property) {
       using UserProperty_t = PartialProperty_t<Manager_t>;
-      return this->force_get_property_ref_from_top_manager<UserProperty_t>(name);
+      return this->force_get_property_ref_from_top_manager<UserProperty_t>(name, validate_property);
     }
 
 
 
+    /**
+     * Returns  
+     *
+     * @tparam UserProperty_t full type of the property to return.
+     *
+     * @param name Name of the property to get.ß
+     * @param validate_property Property is validated if flag is on. It is compared if each template parameter within the UserProperty is in agreement with the stored property of the given name.
+     *
+     * @throw runtime_error If validate_property is on and UserProperty_t is not compatible with property type of the given name.
+     * @throw runtime_error If property has not been found in manager stack
+     */
 
+    /**
+     * Returns a typed property of the given name.
+     *
+     * @tparam UserProperty_t full type of the property to return.
+     *
+     * @param name Name of the property to get.ß
+     * @param validate_property Property is validated if flag is on. It is compared if each template parameter within the UserProperty is in agreement with the stored property of the given name.
+     *
+     * @throw runtime_error If validate_property is on and UserProperty_t is not compatible with property type of the given name.
+     * @throw runtime_error If property has not been found in manager stack
+     */
     template <typename UserProperty_t,
         bool IsRoot = IsRootImplementation,
         std::enable_if_t<not(IsRoot), int> = 0>
-    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name) {
+    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name, bool validate_property) {
       if (this->has_property(name)) {
-        return std::static_pointer_cast<UserProperty_t>(this->properties.at(name));
+        return this->template get_existing_property_ptr<UserProperty_t>(name, validate_property);
       }
-      return this->get_previous_manager()->template get_property_ptr<UserProperty_t>(name);
+      return this->get_previous_manager()->template get_property_ptr<UserProperty_t>(name, validate_property);
     }
 
     template <typename UserProperty_t,
         bool IsRoot = IsRootImplementation,
         std::enable_if_t<IsRoot, int> = 0>
-    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name) {
+    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name, bool validate_property) {
       if (this->has_property(name)) {
-        return std::static_pointer_cast<UserProperty_t>(this->properties.at(name));
+        return this->template get_existing_property_ptr<UserProperty_t>(name, validate_property);
       }
       std::stringstream error{};
       error << "No property of name '" << name << "' has been registered";
@@ -506,36 +528,11 @@ namespace rascal {
     }
 
     template <typename UserProperty_t>
-    UserProperty_t & get_property_ref(const std::string & name) {
-      return *this->template get_property_ptr<UserProperty_t>(name);
+    UserProperty_t & get_property_ref(const std::string & name, bool validate_property) {
+      return *this->template get_property_ptr<UserProperty_t>(name, validate_property);
     }
 
 
-    /**
-     * Returns a typed and validated property with the given name. Depending on the force_creation flag, the property is created, if it does not exists.
-     *
-     * @tparam UserProperty_t full type of the property to return
-     *
-     * @param name name of the property to get
-     *
-     * @throw runtime_error if property does not exist and force_creation flag is false.
-     *
-     * @throw runtime_error if UserProperty_t is not compatible with property
-     * type of the given name
-     */
-    template <typename UserProperty_t>
-    std::shared_ptr<UserProperty_t> get_validated_property_ptr(
-        const std::string & name) {
-      auto property = this->template get_property_ptr<UserProperty_t>(name);
-      this->template validate_property_t<UserProperty_t>(property);
-      return std::static_pointer_cast<UserProperty_t>(property);
-    }
-
-    template <typename UserProperty_t>
-    UserProperty_t &
-    get_validated_property_ref(const std::string & name) {
-      return *this->template get_validated_property_ptr<UserProperty_t>(name);
-    }
 
     // TODO(felix) remove freshness and keep updatability or the other way around?
     inline void set_updated_property_status(const bool& is_updated) {
@@ -662,7 +659,23 @@ namespace rascal {
         typename std::enable_if_t<not(HasDistances), int> = 0>
     inline double &
     get_distance(const ClusterRefKey<Order, Layer> &) const {
-      throw std::runtime_error("Trying to get_distance from a struture manager stack without computed distances.");
+      throw std::runtime_error("Trying to get_distance from a manager stack without computed distances.");
+    }
+
+    template <size_t Order, size_t Layer,
+        bool HasDirectionVectors = traits::HasDirectionVectors,
+        typename std::enable_if_t<HasDirectionVectors, int> = 0>
+    inline const Vector_ref
+    get_direction_vector(const ClusterRefKey<Order, Layer> & pair) {
+      return this->get_previous_manager()->get_direction_vector(pair);
+    }
+
+    template <size_t Order, size_t Layer,
+        bool HasDirectionVectors = traits::HasDirectionVectors,
+        typename std::enable_if_t<not(HasDirectionVectors), int> = 0>
+    inline const Vector_ref
+    get_direction_vector(const ClusterRefKey<Order, Layer> &) const {
+      throw std::runtime_error("Trying to get direction vectors from a manager stack without computed direction vectors.");
     }
 
    protected:
@@ -747,6 +760,25 @@ namespace rascal {
 
     std::map<std::string, std::shared_ptr<PropertyBase>> properties{};
     std::map<std::string, bool> property_fresh{};
+   private:
+    /**
+     * Returns the property of the given name. Assumes that the property exists, therefore applies no checks.
+     *
+     * @tparam UserProperty_t full type of the property to return.
+     *
+     * @param name Name of the property to get.ß
+     * @param validate_property Property is validated if flag is on. It is compared if each template parameter within the UserProperty is in agreement with the stored property of the given name.
+     *
+     * @throw std::map::at runtime error if property name does not exist.
+     */
+    template <typename UserProperty_t>
+    std::shared_ptr<UserProperty_t> get_existing_property_ptr (const std::string & name, bool validate_property) {
+      auto property = this->properties.at(name);
+      if (validate_property) {
+        this->template validate_property_t<UserProperty_t>(property);
+      }
+      return std::static_pointer_cast<UserProperty_t>(property);
+    }
   };
 
   /* ----------------------------------------------------------------------

@@ -577,8 +577,8 @@ namespace rascal {
 
     using AtomVectorProperty_t = typename Fix::AtomScalarProperty_t;//<double, 1, 3, 1>;
     Fix::manager->template create_property<AtomVectorProperty_t >("test");
-    std::shared_ptr<AtomVectorProperty_t > ptr{manager->template get_validated_property_ptr<AtomVectorProperty_t >("test")};
-    AtomVectorProperty_t  & ref{manager->template get_validated_property_ref<AtomVectorProperty_t  >("test")};
+    std::shared_ptr<AtomVectorProperty_t > ptr{manager->template get_property_ptr<AtomVectorProperty_t >("test", true)};
+    AtomVectorProperty_t  & ref{manager->template get_property_ref<AtomVectorProperty_t  >("test", true)};
     
     if (verbose) {
       std::cout << ">> Fill property by pointer." << std::endl;
@@ -606,18 +606,18 @@ namespace rascal {
     }
   }
   
-  using has_not_distance_stack_fixtures = boost::mpl::list<
-            AdaptorMaxOrderStackFixture<ANLWithGhosts_SMC_StackFixture>,
-            AdaptorHalfListStackFixture<ANLWithGhosts_SMC_StackFixture>,
-            AdaptorMaxOrderStackFixture<ANLWithGhosts_SMC_StackFixture>
-                >;
-  using has_distance_smc_stack_fixtures = boost::mpl::list<
+  /* Fixtures with the HasDistance flag on, stacking on top of AS<SMC>. The stack is important, because the right manager has to be chosen to get the distance type
+   */
+  using has_distance_and_dir_vec_ac_smc_stack_fixtures = boost::mpl::list<
             AdaptorStrictStackFixture<ANLWithGhosts_SMC_StackFixture>,
             AdaptorMaxOrderStackFixture<AdaptorStrictStackFixture<
               ANLWithGhosts_SMC_StackFixture>>
                 >;
+
+  /* Tests if distance property can be accessed with get_distance function and get_property and if their equal.
+   */
   BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_distance_test, Fix, 
-      has_distance_smc_stack_fixtures, Fix) {
+      has_distance_and_dir_vec_ac_smc_stack_fixtures, Fix) {
     bool verbose{false};
     auto manager{Fix::manager};
     if (verbose) {
@@ -626,9 +626,8 @@ namespace rascal {
       std::cout << " starts now." << std::endl;
     }
     using Distance_t = typename AdaptorStrict<AdaptorNeighbourList<StructureManagerCenters>>::Distance_t;
-    //using Distance_t = typename Fix::Manager_t::Distance_t;
     Distance_t & distance_property{
-        manager->template get_validated_property_ref<Distance_t>("distance")};
+        manager->template get_property_ref<Distance_t>("distance", true)};
     for (auto atom : manager) {
       for (auto pair : atom) {
         BOOST_CHECK_EQUAL(manager->get_distance(pair),
@@ -640,13 +639,53 @@ namespace rascal {
     }
   }
 
-  // Tests if adaptors without flag HasDistance return an error when invoked.
-  BOOST_FIXTURE_TEST_CASE(get_distance_error_test,
-      AdaptorMaxOrderStackFixture<ANLWithGhosts_SMC_StackFixture>) {
+  BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_direction_vector_test, Fix, 
+      has_distance_and_dir_vec_ac_smc_stack_fixtures , Fix) {
+    bool verbose{false};
+    auto manager{Fix::manager};
+    if (verbose) {
+      std::cout << ">> get_distance_test for manager ";
+      std::cout << manager->get_name();
+      std::cout << " starts now." << std::endl;
+    }
+    using DirectionVector_t = typename AdaptorStrict<AdaptorNeighbourList<StructureManagerCenters>>::DirectionVector_t;
+    //using Distance_t = typename Fix::Manager_t::Distance_t;
+    DirectionVector_t & dir_vec_property{
+        manager->template get_property_ref<DirectionVector_t>("dir_vec", true)};
+    for (auto atom : manager) {
+      for (auto pair : atom) {
+        BOOST_CHECK_LE((manager->get_direction_vector(pair)-
+            dir_vec_property.operator[](pair)).norm(), tol * 100);
+      }
+    }
+    if (verbose) {
+      std::cout << " finished." << std::endl;
+    }
+  }
+
+
+  // Fixtures with the HasDistance and HasDirectionVector flag off.
+  using has_not_distance_and_dir_vec_stack_fixtures = boost::mpl::list<
+            AdaptorMaxOrderStackFixture<ANLWithGhosts_SMC_StackFixture>,
+            AdaptorHalfListStackFixture<ANLWithGhosts_SMC_StackFixture>,
+            AdaptorMaxOrderStackFixture<ANLWithGhosts_SMC_StackFixture>
+                >;
+  // Tests if stacks without flag HasDistances throw an error when invoked.
+  BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_distance_throws_error_test, Fix,
+      has_not_distance_and_dir_vec_stack_fixtures, Fix) {
     size_t pair_indices[] = {0};
     Eigen::Map<const Eigen::Matrix<size_t, 1, 1>> pair_indices_map(pair_indices);
     ClusterRefKey<2,0> pair{ClusterRefKey<2,0>({0,1},pair_indices_map)};
-    BOOST_CHECK_THROW(manager->get_distance(pair), std::exception);
+    BOOST_CHECK_THROW(Fix::manager->get_distance(pair), std::exception);
+  }
+
+  // Tests if stacks without flag HasDirectionVector throw an error when invoked.
+  BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_direction_vector_throw_serror_test, Fix,
+      has_not_distance_and_dir_vec_stack_fixtures, Fix) {
+    size_t pair_indices[] = {0};
+    Eigen::Map<const Eigen::Matrix<size_t, 1, 1>> pair_indices_map(pair_indices);
+    ClusterRefKey<2,0> pair{ClusterRefKey<2,0>({0,1},pair_indices_map)};
+    BOOST_CHECK_THROW(Fix::manager->get_direction_vector(pair), std::exception);
   }
 
 

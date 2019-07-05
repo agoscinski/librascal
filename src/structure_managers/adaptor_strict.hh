@@ -238,26 +238,6 @@ namespace rascal {
       return this->manager->get_shared_ptr();
     }
 
-    template <typename UserProperty_t>
-    std::shared_ptr<UserProperty_t> get_property_ptr_impl(const std::string & name,
-        bool force_creation = false) {
-      if (this->has_property(name)) {
-        return this->template get_property_ptr<UserProperty_t>(name);
-      }
-      return this->get_previous_manager()->template get_property_ptr<UserProperty_t>(name, force_creation);
-    }
-
-    template <typename UserProperty_t>
-    UserProperty_t & get_property_ref_impl(const std::string & name,
-        bool force_creation = false) {
-      if (this->has_property(name)) {
-        return this->template get_property_ref<UserProperty_t>(name);
-      }
-      return this->get_previous_manager()->template get_property_ref<UserProperty_t>(name, force_creation);
-    }
-
-    // BUG8486@(till) I deleted the non const getters, because they are not
-    // needed
     // if this was wrong, please explain
     //! returns the distance between atoms in a given pair
     template <size_t Order, size_t Layer>
@@ -421,9 +401,9 @@ namespace rascal {
     this->template create_property<Distance_t>("distance");
     this->template create_property<DirectionVector_t>("dir_vec");
     this->distance =
-        this->template get_property_ptr<Distance_t>("distance");
+        this->template get_property_ptr<Distance_t>("distance", false);
     this->dir_vec =
-        this->template get_property_ptr<DirectionVector_t>("dir_vec");
+        this->template get_property_ptr<DirectionVector_t>("dir_vec", false);
 
     this->distance->clear();
     this->dir_vec->clear();

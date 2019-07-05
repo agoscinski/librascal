@@ -168,7 +168,7 @@ namespace rascal {
         representations.emplace_back(hypers);
         representations.back().compute(manager);
         auto property_name{representations.back().get_name()};
-        auto&& property{manager->template get_validated_property_ref<Property_t>(property_name)};
+        auto&& property{manager->template get_property_ref<Property_t>(property_name, true)};
 
         auto test_representation{property.get_dense_rep()};
 
