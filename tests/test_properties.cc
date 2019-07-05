@@ -626,12 +626,20 @@ namespace rascal {
             distance_property.operator[](pair));
       }
     }
-
     if (verbose) {
       std::cout << " finished." << std::endl;
     }
-
   }
+
+  // Tests if adaptors without flag HasDistance return an error when invoked.
+  BOOST_FIXTURE_TEST_CASE(get_distance_error_test,
+      AdaptorMaxOrderStackFixture<ANLWithGhosts_SMC_StackFixture>) {
+    size_t pair_indices[] = {0};
+    Eigen::Map<const Eigen::Matrix<size_t, 1, 1>> pair_indices_map(pair_indices);
+    ClusterRefKey<2,0> pair{ClusterRefKey<2,0>({0,1},pair_indices_map)};
+    BOOST_CHECK_THROW(this->manager->get_distance(pair), std::exception);
+  }
+
 
   /* ---------------------------------------------------------------------- */
   /**

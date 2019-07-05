@@ -266,10 +266,10 @@ namespace rascal {
         bool HasDistances = traits::HasDistances,
         typename std::enable_if_t<not(HasDistances), int> = 0>
     inline double &
-    get_distance(const ClusterRefKey<Order, Layer> & pair) const {
+    get_distance(const ClusterRefKey<Order, Layer> &) const {
       throw std::runtime_error("Trying to get_distance from a struture manager stack without computed distances");
-      return 0;
     }
+
     //! Get the manager used to build the instance
     ImplementationPtr_t get_previous_manager_impl() {
       return this->manager->get_shared_ptr();
