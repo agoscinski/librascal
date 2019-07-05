@@ -181,7 +181,8 @@ namespace rascal {
    public:
     using StructureManager_t = StructureManager<ManagerImplementation>;
     using traits = StructureManager_traits<ManagerImplementation>;
-    typedef typename traits::PreviousManager_t PreviousManager_t;
+    using PreviousManager_t = typename traits::PreviousManager_t;
+    using ImplementationPtr_t = std::shared_ptr<PreviousManager_t >;
     //! type used to represent spatial coordinates, etc
     using Vector_t = Eigen::Matrix<double, traits::Dim, 1>;
     using Vector_ref = Eigen::Map<Vector_t>;
@@ -665,7 +666,7 @@ namespace rascal {
       return this->cluster_indices_container;
     }
     
-    std::shared_ptr<PreviousManager_t> get_previous_manager() {
+    ImplementationPtr_t get_previous_manager() {
       return this->implementation().get_previous_manager_impl();
     }
 

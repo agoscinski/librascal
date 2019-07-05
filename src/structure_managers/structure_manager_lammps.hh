@@ -64,8 +64,8 @@ namespace rascal {
     using Parent = StructureManager<StructureManagerLammps>;
     using Vector_ref = typename Parent::Vector_ref;
     using AtomRef_t = typename Parent::AtomRef;
-    typedef typename traits::PreviousManager_t PreviousManager_t;
-    using ImplementationPtr_t = std::shared_ptr<StructureManagerLammps>;
+    using PreviousManager_t = typename traits::PreviousManager_t;
+    using ImplementationPtr_t = std::shared_ptr<PreviousManager_t >;
 
     //! Default constructor
     StructureManagerLammps() = default;
@@ -222,7 +222,7 @@ namespace rascal {
                      int * numneigh, int ** firstneigh, double ** x,
                      double ** f, int * type, double * eatom, double ** vatom);
 
-    std::shared_ptr<PreviousManager_t> get_previous_manager_impl() {
+    ImplementationPtr_t get_previous_manager_impl() {
       return shared_from_this();
     }
 

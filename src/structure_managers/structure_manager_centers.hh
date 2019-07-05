@@ -96,8 +96,8 @@ namespace rascal {
     using Vector_ref = typename Parent::Vector_ref;
     using AtomRef_t = typename Parent::AtomRef;
     using Children_t = typename Parent::Children_t;
-    typedef typename traits::PreviousManager_t PreviousManager_t;
-    using ImplementationPtr_t = std::shared_ptr<StructureManagerCenters>;
+    using PreviousManager_t = typename traits::PreviousManager_t;
+    using ImplementationPtr_t = std::shared_ptr<PreviousManager_t >;
 
     /**
      * Eigen::Map is a convenient way to access data in the 'Eigen-way', if it
@@ -309,7 +309,7 @@ namespace rascal {
     //! overload of update that does not change the underlying structure
     void update_self() {}
 
-    std::shared_ptr<PreviousManager_t> get_previous_manager_impl() {
+    ImplementationPtr_t get_previous_manager_impl() {
       return shared_from_this();
     }
 
