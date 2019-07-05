@@ -253,23 +253,6 @@ namespace rascal {
         return this->nb_neigh[access_index];
       }
     }
-
-    template <size_t Order, size_t Layer,
-        bool HasDistances = traits::HasDistances,
-        typename std::enable_if_t<HasDistances, int> = 0>
-    inline double &
-    get_distance(const ClusterRefKey<Order, Layer> & pair) const {
-      return this->get_previous_manager->get_distance(pair);
-    }
-
-    template <size_t Order, size_t Layer,
-        bool HasDistances = traits::HasDistances,
-        typename std::enable_if_t<not(HasDistances), int> = 0>
-    inline double &
-    get_distance(const ClusterRefKey<Order, Layer> &) const {
-      throw std::runtime_error("Trying to get_distance from a struture manager stack without computed distances");
-    }
-
     //! Get the manager used to build the instance
     ImplementationPtr_t get_previous_manager_impl() {
       return this->manager->get_shared_ptr();

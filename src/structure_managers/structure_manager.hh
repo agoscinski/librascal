@@ -191,6 +191,9 @@ namespace rascal {
     using ClusterConstructor_t =
         typename internal::ClusterIndexConstructor<ClusterIndex_t,
                                                    StructureManager_t>;
+    // The root manager is the only manager which fulfills this condition
+    constexpr static bool IsRootImplementation =
+        std::is_same<PreviousManager_t, ManagerImplementation>::value;
 
     //! helper type for Property creation
     template <typename T, size_t Order, Dim_t NbRow = 1, Dim_t NbCol = 1>
@@ -359,22 +362,44 @@ namespace rascal {
       this->attach_property(name, property);
     }
 
-    /**
-     * Helper function to check if a property with the specifier `name` has
-     * already been attached.
-     */
     inline bool has_property(const std::string & name) const {
       return not(this->properties.find(name) == this->properties.end());
     }
 
-    template <typename UserProperty_t>
-    void add_property(const std::string & name) {
+    template<bool IsRoot = IsRootImplementation,
+        std::enable_if_t<IsRoot, int> = 0>
+    inline bool is_property_in_manager_stack(const std::string & name) const {
+      return this->has_property(name);
+    }
+
+    /**
+     * Helper function to check if a property with the specifier `name` has
+     * already been attached.
+     */
+    // If this implementation is not root, look if the previous manager has property
+    template<bool IsRoot = IsRootImplementation,
+        std::enable_if_t<not(IsRoot), int> = 0>
+    inline bool is_property_in_manager_stack(const std::string & name) {
       if (this->has_property(name)) {
+        return true;
+      }
+      return this->get_previous_manager()->is_property_in_manager_stack(name);
+    }
+    void validate_existence_of_property_in_manager_stack(const std::string & name) {
+      if (this->is_property_in_manager_stack(name)) {
         std::stringstream error{};
+        //TODO(felix) can you tell me(alex) how to print this->manager name
+        // or some other way to inform the user where the property has been found.
+        // Because this function goes through the stack of managers.
         error << "A property of name '" << name
               << "' has already been registered";
         throw std::runtime_error(error.str());
       }
+    }
+
+    template <typename UserProperty_t>
+    void add_property(const std::string & name) {
+      this->validate_existence_of_property_in_manager_stack(name);
       this->create_property<UserProperty_t>(name);
     }
 
@@ -389,12 +414,7 @@ namespace rascal {
      */
     template <typename UserProperty_t>
     bool check_property_t(const std::string & name) const {
-      if (this->has_property(name)) {
-        std::stringstream error{};
-        error << "A property of name '" << name
-              << "' has already been registered";
-        throw std::runtime_error(error.str());
-      }
+      this->validate_existence_of_property_in_manager_stack(name);
       auto property = this->properties.at(name);
       try {
         UserProperty_t::check_compatibility(*property);
@@ -437,19 +457,46 @@ namespace rascal {
      *
      * @throw runtime_error if property does not exist and force_creation flag is false.
      */
-    template <typename UserProperty_t>
+    //template<template <class > class Property, class Manager>
+    //force_get_property_ptr() {
+    //  
+    //}
+
+    template<typename UserProperty_t>
     std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name, 
-        const bool & force_creation=false) {
-      if (not(this->has_property(name))) {
-        if (not(force_creation)) {
-          std::stringstream error{};
-          error << "No property of name '" << name << "' has been registered";
-          throw std::runtime_error(error.str());
-        } else {
-          this->create_property<UserProperty_t>(name);
-        }
+        const bool & force_creation) {
+      if (not(force_creation) || this->is_property_in_manager_stack(name)) {
+        return this->get_property_ptr<UserProperty_t>(name);
       }
-      return std::static_pointer_cast<UserProperty_t>(this->properties.at(name));
+      if (force_creation) {
+        this->create_property<UserProperty_t>(name);
+        return this->get_property_ptr<UserProperty_t>(name);
+      }
+      std::stringstream error{};
+      error << "No property of name '" << name << "' has been registered";
+      throw std::runtime_error(error.str());
+    }
+
+    template <typename UserProperty_t,
+        bool IsRoot = IsRootImplementation,
+        std::enable_if_t<not(IsRoot), int> = 0>
+    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name) {
+      if (this->has_property(name)) {
+        return std::static_pointer_cast<UserProperty_t>(this->properties.at(name));
+      }
+      return this->get_previous_manager()->template get_property_ptr<UserProperty_t>(name);
+    }
+
+    template <typename UserProperty_t,
+        bool IsRoot = IsRootImplementation,
+        std::enable_if_t<IsRoot, int> = 0>
+    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name) {
+      if (this->has_property(name)) {
+        return std::static_pointer_cast<UserProperty_t>(this->properties.at(name));
+      }
+      std::stringstream error{};
+      error << "No property of name '" << name << "' has been registered";
+      throw std::runtime_error(error.str());
     }
 
     template <typename UserProperty_t>
@@ -598,6 +645,22 @@ namespace rascal {
           child.lock()->send_changed_structure_signal();
         }
       }
+    }
+
+    template <size_t Order, size_t Layer,
+        bool HasDistances = traits::HasDistances,
+        typename std::enable_if_t<HasDistances, int> = 0>
+    inline double &
+    get_distance(const ClusterRefKey<Order, Layer> & pair) {
+      return this->get_previous_manager()->get_distance(pair);
+    }
+
+    template <size_t Order, size_t Layer,
+        bool HasDistances = traits::HasDistances,
+        typename std::enable_if_t<not(HasDistances), int> = 0>
+    inline double &
+    get_distance(const ClusterRefKey<Order, Layer> &) const {
+      throw std::runtime_error("Trying to get_distance from a struture manager stack without computed distances.");
     }
 
    protected:

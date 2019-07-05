@@ -565,8 +565,6 @@ namespace rascal {
     }
   }
 
-  // TODO(alex) add default distance function
-  // TODO(alex) template tests
   BOOST_FIXTURE_TEST_CASE_TEMPLATE(create_and_get_property_tests, Fix,
                                    atom_vector_property_fixtures, Fix) {
     bool verbose{false};
@@ -608,21 +606,32 @@ namespace rascal {
     }
   }
   
-  BOOST_FIXTURE_TEST_CASE(get_distance_test,
-      AdaptorStrictStackFixture<ANLWithGhosts_SMC_StackFixture>) {
+  using has_not_distance_stack_fixtures = boost::mpl::list<
+            AdaptorMaxOrderStackFixture<ANLWithGhosts_SMC_StackFixture>,
+            AdaptorHalfListStackFixture<ANLWithGhosts_SMC_StackFixture>,
+            AdaptorMaxOrderStackFixture<ANLWithGhosts_SMC_StackFixture>
+                >;
+  using has_distance_smc_stack_fixtures = boost::mpl::list<
+            AdaptorStrictStackFixture<ANLWithGhosts_SMC_StackFixture>
+            //AdaptorMaxOrderStackFixture<AdaptorStrictStackFixture<
+            //  ANLWithGhosts_SMC_StackFixture>>
+                >;
+  BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_distance_test, Fix, 
+      has_distance_smc_stack_fixtures, Fix) {
     bool verbose{false};
+    auto manager{Fix::manager};
     if (verbose) {
       std::cout << ">> get_distance_test for manager ";
       std::cout << manager->get_name();
       std::cout << " starts now." << std::endl;
     }
-    // this does not work but would be more nice
-    //typedef AdaptorStrict<StructureManagerCenters>::Distance_t Distance_t;
-    using Distance_t = typename Manager_t::template Property_t<double, 2, 1>;
-    Distance_t & distance_property{this->manager->get_validated_property_ref<Distance_t>("distance")};
-    for (auto atom : this->manager) {
+    using Distance_t = typename AdaptorStrict<AdaptorNeighbourList<StructureManagerCenters>>::Distance_t;
+    //using Distance_t = typename Fix::Manager_t::Distance_t;
+    Distance_t & distance_property{
+        manager->template get_validated_property_ref<Distance_t>("distance")};
+    for (auto atom : manager) {
       for (auto pair : atom) {
-        BOOST_CHECK_EQUAL(this->manager->get_distance(pair),
+        BOOST_CHECK_EQUAL(manager->get_distance(pair),
             distance_property.operator[](pair));
       }
     }
@@ -637,7 +646,7 @@ namespace rascal {
     size_t pair_indices[] = {0};
     Eigen::Map<const Eigen::Matrix<size_t, 1, 1>> pair_indices_map(pair_indices);
     ClusterRefKey<2,0> pair{ClusterRefKey<2,0>({0,1},pair_indices_map)};
-    BOOST_CHECK_THROW(this->manager->get_distance(pair), std::exception);
+    BOOST_CHECK_THROW(manager->get_distance(pair), std::exception);
   }
 
 

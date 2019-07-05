@@ -663,7 +663,7 @@ namespace rascal {
     }
 
     //! Get the manager used to build the instance
-    ImplementationPtr_t get_previous_manager() {
+    ImplementationPtr_t get_previous_manager_impl() {
       return this->manager->get_shared_ptr();
     }
 
