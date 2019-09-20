@@ -56,7 +56,7 @@ namespace rascal {
     using ManagerTypeHolder_t =
         StructureManagerTypeHolder<StructureManagerCenters>;
     const std::string filename{
-        "reference_data/CaCrP2O7_mvc-11955_symmetrized.json"};
+        "data/CaCrP2O7_mvc-11955_symmetrized.json"};
     StructureManagerCentersStackFixture()
         : manager{make_structure_manager<StructureManagerCenters>()} {
       manager->update(filename);

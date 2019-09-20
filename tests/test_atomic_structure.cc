@@ -38,8 +38,8 @@ namespace rascal {
     ~AtomicStructureFixture() = default;
 
     std::string ref_filename1 =
-        "reference_data/CaCrP2O7_mvc-11955_symmetrized.json";
-    std::string ref_filename2 = "reference_data/small_molecule.json";
+        "data/CaCrP2O7_mvc-11955_symmetrized.json";
+    std::string ref_filename2 = "data/small_molecule.json";
 
     bool verbose{false};
   };

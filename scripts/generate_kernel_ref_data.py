@@ -29,8 +29,8 @@ def dump_reference_json():
     max_angulars = [6]
     soap_types = ["RadialSpectrum", "PowerSpectrum"]
 
-    fn = os.path.join(path,"tests/reference_data/dft-smiles_500.xyz")
-    fn_to_write = "reference_data/dft-smiles_500.ubjson"
+    fn = os.path.join(path,"tests/data/dft-smiles_500.xyz")
+    fn_to_write = "data/dft-smiles_500.ubjson"
     start = 0
     length = 5
     representations = ['spherical_invariants']
@@ -91,7 +91,7 @@ def dump_reference_json():
                                         hypers_manager=copy(soap.nl_options),
                                         hypers_kernel=copy(hypers_kernel)))
 
-    with open(path+"tests/reference_data/kernel_reference.ubjson",'wb') as f:
+    with open(path+"tests/data/kernel_reference.ubjson",'wb') as f:
         ubjson.dump(data,f)
 
 ##########################################################################################

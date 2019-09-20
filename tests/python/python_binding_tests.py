@@ -12,17 +12,7 @@ from python_representation_calculator_test import (
 )
 
 from python_math_test import TestMath
-
 from python_test_sparsify_fps import TestFPS
-
-
-class SimpleCheck(unittest.TestCase):
-    def setUp(self):
-        self.truth = True
-
-    def test_simple_example(self):
-        self.assertTrue(self.truth)
-
 
 if __name__ == '__main__':
     faulthandler.enable()

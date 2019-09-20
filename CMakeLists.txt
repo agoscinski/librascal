@@ -221,65 +221,11 @@ set(CMAKE_SKIP_BUILD_RPATH  FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
-# utility to force copy of files...
-add_custom_command(
-    OUTPUT always_rebuild
-    COMMAND ${CMAKE_COMMAND} -E echo
-  )
-
 # set up the tests
-if (${BUILD_TESTS})
-  find_package(Boost REQUIRED COMPONENTS unit_test_framework )
-  enable_testing()
-  # build c++ tests and add to test suite
-  file( GLOB TEST_SRCS "${CMAKE_SOURCE_DIR}/tests/test_*.cc")
-
-  add_executable(main_test_suite tests/main_test_suite.cc ${TEST_SRCS})
-
-  # https://stackoverflow.com/questions/7781374/boost-test-linking
-  ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK)
-
-  target_include_directories(main_test_suite SYSTEM PRIVATE ${Boost_INCLUDE_DIR})
-  target_link_libraries(main_test_suite ${Boost_LIBRARIES} "${LIBRASCAL_NAME}")
-  add_test(main_test_suite main_test_suite --report_level=detailed --build_info=TRUE)
-  configure_file("tests/alanine-X.json" ${CMAKE_BINARY_DIR} COPYONLY)
-  configure_file("tests/simple_cubic_9.json" ${CMAKE_BINARY_DIR} COPYONLY)
-
-
-  if(BUILD_BINDINGS)
-
-    add_custom_target(py_test ALL
-      DEPENDS
-        copy_test_py
-      )
-
-    add_dependencies(py_test main_test_suite)
-
-    add_custom_command(OUTPUT copy_test_py
-      COMMAND ${CMAKE_COMMAND} -E copy_directory
-      ${CMAKE_SOURCE_DIR}/tests/python ${CMAKE_BINARY_DIR}/
-      DEPENDS
-          always_rebuild
-    )
-
-    add_test(python_binding_test python_binding_tests.py)
-  endif()
-
-
-endif(${BUILD_TESTS})
-
-# copy reference data that might be used in the example
-add_custom_target(copy_reference_data ALL
-    DEPENDS
-    copy_test_reference_data
-  )
-
-add_custom_command(OUTPUT copy_test_reference_data
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/tests/reference_data ${CMAKE_BINARY_DIR}/reference_data
-    DEPENDS
-        always_rebuild
-  )
+if (BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # put it there to avoid warnings from boost tests
 add_compile_options(-Werror) # warnings are errors!
@@ -322,26 +268,13 @@ if (ENABLE_PROFILING)
   endif()
 endif()
 
-
-
-# or copy them
-file (GLOB pybins "${CMAKE_SOURCE_DIR}/bin/*.py")
-foreach(pybin ${pybins})
-  get_filename_component(binaryname  ${pybin} NAME_WE)
-  configure_file(
-    ${pybin}
-    "${CMAKE_BINARY_DIR}/${binaryname}.py"
-    COPYONLY)
-endforeach(pybin ${pybins})
-
 # Checking hh/cc files for compliance with coding conventions
 if(CPPLINT_FOUND)
   # register the folders to check for cpp code conventions compliance
   cpplint_add_subdirectory("${CMAKE_SOURCE_DIR}/src" "")
   cpplint_add_subdirectory("${CMAKE_SOURCE_DIR}/tests" "")
   cpplint_add_subdirectory("${CMAKE_SOURCE_DIR}/bindings" "")
-  cpplint_add_subdirectory("${CMAKE_SOURCE_DIR}/examples"
-  "--filter=-build/namespaces")
+  cpplint_add_subdirectory("${CMAKE_SOURCE_DIR}/examples" "--filter=-build/namespaces")
 endif()
 
 # Add all hh/cc files for autoformatting with clang-format
@@ -351,7 +284,7 @@ if(CLANG_FORMAT_FOUND)
   clang_format_add_subdirectory("${CMAKE_SOURCE_DIR}/src" "")
   clang_format_add_subdirectory("${CMAKE_SOURCE_DIR}/tests" "")
   clang_format_add_subdirectory("${CMAKE_SOURCE_DIR}/bindings" "")
-  clang_format_add_subdirectory("${CMAKE_SOURCE_DIR}/examples")
+  clang_format_add_subdirectory("${CMAKE_SOURCE_DIR}/examples" "")
 endif()
 
 # Add python files for autoformatting with autopep8

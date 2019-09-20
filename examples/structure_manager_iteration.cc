@@ -66,7 +66,7 @@ int main() {
 
   std::string filename{"crystal_structure.json"};
   // std::string filename{"alanine-X.json"};
-  // std::string filename{"reference_data/CaCrP2O7_mvc-11955_symmetrized.json"};
+  // std::string filename{"data/CaCrP2O7_mvc-11955_symmetrized.json"};
 
   std::cout << "Reading structure " << filename << std::endl;
 

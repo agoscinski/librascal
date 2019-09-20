@@ -19,11 +19,11 @@ sorts = ['row_norm', 'distance']
 
 fns = [
     os.path.join(
-        path, "tests/reference_data/CaCrP2O7_mvc-11955_symmetrized.json"),
-    os.path.join(path, "tests/reference_data/small_molecule.json")]
+        path, "tests/data/CaCrP2O7_mvc-11955_symmetrized.json"),
+    os.path.join(path, "tests/data/small_molecule.json")]
 fns_to_write = [
-    "reference_data/CaCrP2O7_mvc-11955_symmetrized.json",
-    "reference_data/small_molecule.json"
+    "data/CaCrP2O7_mvc-11955_symmetrized.json",
+    "data/small_molecule.json"
 ]
 
 data = dict(filenames=fns_to_write, cutoffs=cutoffs, rep_info=[])
@@ -48,6 +48,6 @@ for fn in fns:
 
 with open(os.path.join(path,
                        "tests",
-                       "reference_data",
+                       "data",
                        "sorted_coulomb_reference.ubjson"), 'wb') as f:
     ubjson.dump(data, f)

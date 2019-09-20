@@ -46,12 +46,12 @@ def dump_reference_json():
 
     fns = [
         os.path.join(
-            path, "tests/reference_data/CaCrP2O7_mvc-11955_symmetrized.json"),
-        os.path.join(path, "tests/reference_data/small_molecule.json")
+            path, "tests/data/CaCrP2O7_mvc-11955_symmetrized.json"),
+        os.path.join(path, "tests/data/small_molecule.json")
     ]
     fns_to_write = [
-        "reference_data/CaCrP2O7_mvc-11955_symmetrized.json",
-        "reference_data/small_molecule.json",
+        "data/CaCrP2O7_mvc-11955_symmetrized.json",
+        "data/small_molecule.json",
     ]
 
     data = dict(filenames=fns_to_write,
@@ -98,7 +98,7 @@ def dump_reference_json():
                                      hypers=copy(soap.hypers)))
 
     with open(path+
-                "tests/reference_data/spherical_invariants_reference.ubjson",
+                "tests/data/spherical_invariants_reference.ubjson",
                 'wb') as f:
         ubjson.dump(data, f)
 
@@ -121,7 +121,7 @@ def main(json_dump, save_kernel):
     lmax = test_hypers["max_angular"]
     nstr = '2'  # number of structures
 
-    frames = read('../tests/reference_data/dft-smiles_500.xyz', ':'+str(nstr))
+    frames = read('../tests/data/dft-smiles_500.xyz', ':'+str(nstr))
     species = set(
         [atom for frame in frames for atom in frame.get_atomic_numbers()])
     nspecies = len(species)
@@ -146,7 +146,7 @@ def main(json_dump, save_kernel):
 
 #------------------------------------------nu=3-----------------------------#
 
-    frames = read('../tests/reference_data/water_rotations.xyz', ':'+str(nstr))
+    frames = read('../tests/data/water_rotations.xyz', ':'+str(nstr))
     species = set(
         [atom for frame in frames for atom in frame.get_atomic_numbers()])
     nspecies = len(species)

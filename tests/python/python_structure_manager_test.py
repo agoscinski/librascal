@@ -68,7 +68,7 @@ class TestStructureManagerCenters(unittest.TestCase):
         against a triclinic crystal.
         """
 
-        fn = '../tests/reference_data/CaCrP2O7_mvc-11955_symmetrized.json'
+        fn = 'data/CaCrP2O7_mvc-11955_symmetrized.json'
         self.frame = load_json_frame(fn)
         self.structure = self.frame
         self.nl_options = [
@@ -94,7 +94,7 @@ class TestNL(unittest.TestCase):
         against a triclinic crystal.
         """
 
-        fn = '../tests/reference_data/CaCrP2O7_mvc-11955_symmetrized.json'
+        fn = 'data/CaCrP2O7_mvc-11955_symmetrized.json'
         self.frame = load_json_frame(fn)
         self.structure = self.frame
         self.cutoff = 3.
@@ -141,7 +141,7 @@ class TestNLStrict(unittest.TestCase):
         against a triclinic crystal.
         """
 
-        fn = '../tests/reference_data/CaCrP2O7_mvc-11955_symmetrized.json'
+        fn = 'data/CaCrP2O7_mvc-11955_symmetrized.json'
         self.frame = load_json_frame(fn)
         self.structure = self.frame
         self.cutoff = 3.

@@ -225,7 +225,7 @@ namespace rascal {
     ~SphericalInvariantsTestData() = default;
     bool verbose{false};
     std::string ref_filename{
-        "reference_data/spherical_invariants_reference.ubjson"};
+        "data/spherical_invariants_reference.ubjson"};
   };
 
   struct SphericalCovariantsTestData : TestData {
@@ -238,7 +238,7 @@ namespace rascal {
     ~SphericalCovariantsTestData() = default;
     bool verbose{false};
     std::string ref_filename{
-        "reference_data/spherical_covariants_reference.ubjson"};
+        "data/spherical_covariants_reference.ubjson"};
   };
 
   struct MultipleStructureSphericalExpansion
@@ -316,8 +316,7 @@ namespace rascal {
 
     ~SimpleStructureManagerNLStrictFixture() = default;
 
-    const std::string filename{
-        "reference_data/CaCrP2O7_mvc-11955_symmetrized.json"};
+    const std::string filename{"data/CaCrP2O7_mvc-11955_symmetrized.json"};
     const double cutoff{3.};
     const double cutoff_skin{0.5};
 
@@ -401,12 +400,12 @@ namespace rascal {
     ~SimplePeriodicNLStrictFixture() = default;
 
     const std::vector<std::string> filenames{
-        "reference_data/diamond_2atom.json",
-        "reference_data/diamond_2atom_distorted.json",
-        "reference_data/diamond_cubic_distorted.json",
-        "reference_data/SiC_moissanite.json",
-        "reference_data/SiCGe_wurtzite_like.json",
-        "reference_data/SiC_moissanite_supercell.json"};
+        "data/diamond_2atom.json",
+        "data/diamond_2atom_distorted.json",
+        "data/diamond_cubic_distorted.json",
+        "data/SiC_moissanite.json",
+        "data/SiCGe_wurtzite_like.json",
+        "data/SiC_moissanite_supercell.json"};
     const double cutoff{2.5};
     const double cutoff_skin{0.5};
 
@@ -506,7 +505,7 @@ namespace rascal {
     ~SphericalExpansionTestData() = default;
     bool verbose{false};
     std::string ref_filename{
-        "reference_data/spherical_expansion_reference.ubjson"};
+        "data/spherical_expansion_reference.ubjson"};
   };
 
   /**
@@ -843,7 +842,7 @@ namespace rascal {
     // script/generate_sorted_coulomb_ref_data.py
 
     const bool consider_ghost_neighbours{false};
-    std::string ref_filename{"reference_data/sorted_coulomb_reference.ubjson"};
+    std::string ref_filename{"data/sorted_coulomb_reference.ubjson"};
     bool verbose{false};
   };
 

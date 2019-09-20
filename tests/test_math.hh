@@ -56,7 +56,7 @@ namespace rascal {
 
     ~SphericalHarmonicsRefFixture() = default;
 
-    std::string ref_filename = "reference_data/spherical_harmonics_test.json";
+    std::string ref_filename = "data/spherical_harmonics_test.json";
 
     using StdVector2Dim_t = std::vector<std::vector<double>>;
     using StdVector3Dim_t = std::vector<std::vector<std::vector<double>>>;
@@ -76,7 +76,7 @@ namespace rascal {
     ~SphericalHarmonicsClassRefFixture() = default;
 
     std::string ref_filename =
-        "reference_data/spherical_harmonics_reference.ubjson";
+        "data/spherical_harmonics_reference.ubjson";
     json ref_data{};
     // TODO(alex) replace this with one variable VerbosityValues verbosity
     // for general test information
@@ -386,7 +386,7 @@ namespace rascal {
 
     ~Hyp1F1RefFixture() = default;
 
-    std::string ref_filename = "reference_data/hyp1f1_reference.ubjson";
+    std::string ref_filename = "data/hyp1f1_reference.ubjson";
 
     json ref_data{};
     bool verbose{false};
