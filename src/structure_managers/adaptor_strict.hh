@@ -398,12 +398,10 @@ namespace rascal {
     }
 
     //! initialise the distance storage
-    this->template create_property<Distance_t>("distance");
-    this->template create_property<DirectionVector_t>("dir_vec");
     this->distance =
-        this->template get_property_ptr<Distance_t>("distance", false);
+        this->template get_property_ptr<Distance_t>("distance", false, true);
     this->dir_vec =
-        this->template get_property_ptr<DirectionVector_t>("dir_vec", false);
+        this->template get_property_ptr<DirectionVector_t>("dir_vec", false, true);
 
     this->distance->clear();
     this->dir_vec->clear();

@@ -1,9 +1,7 @@
 import json
 
-from ..neighbourlist import get_neighbourlist
 from .base import CalculatorFactory
-from ..neighbourlist.structure_manager import convert_to_structure
-from ..neighbourlist.base import NeighbourListFactory
+from ..neighbourlist import AtomsList
 import numpy as np
 
 
@@ -54,7 +52,7 @@ class SphericalExpansion(object):
     def __init__(self, interaction_cutoff, cutoff_smooth_width,
                  max_radial, max_angular, gaussian_sigma_type,
                  gaussian_sigma_constant=0., cutoff_function_type="Cosine",
-                 n_species=1,radial_basis="GTO",
+                 n_species=1, radial_basis="GTO",
                  method='thread', n_workers=1, disable_pbar=False):
         """Construct a SphericalExpansion representation
 
@@ -94,9 +92,9 @@ class SphericalExpansion(object):
                                     radial_contribution=radial_contribution)
 
         self.nl_options = [
-            dict(name='centers', args=[]),
-            dict(name='neighbourlist', args=[interaction_cutoff]),
-            dict(name='strict', args=[interaction_cutoff])
+            dict(name='centers', args=dict()),
+            dict(name='neighbourlist', args=dict(cutoff=interaction_cutoff)),
+            dict(name='strict', args=dict(cutoff=interaction_cutoff))
         ]
 
         hypers_str = json.dumps(self.hypers)
@@ -109,12 +107,12 @@ class SphericalExpansion(object):
         self.misc = dict(method=method, n_workers=n_workers,
                          disable_pbar=disable_pbar)
 
-        self.representation = CalculatorFactory(self.rep_options)
+        self._representation = CalculatorFactory(self.rep_options)
 
     def update_hyperparameters(self, **hypers):
         """Store the given dict of hyperparameters
 
-        Also updates the internal json-like representation
+        Also updates the internal json-like _representation
 
         """
         allowed_keys = {'interaction_cutoff', 'cutoff_smooth_width',
@@ -135,27 +133,15 @@ class SphericalExpansion(object):
 
         Returns
         -------
-        FeatureManager.blocksparse_double
+
             Object containing the representation
 
         """
-        structures = [convert_to_structure(frame) for frame in frames]
+        if not isinstance(frames, AtomsList):
+            frames = AtomsList(frames, self.nl_options)
 
-        managers = [NeighbourListFactory(self.nl_options)]*len(frames)
-
-        for structure,manager in zip(structures,managers):
-            manager.update(**structure)
-
-        n_atoms = [0]+[len(structure['atom_types'])
-                       for structure in structures]
-
-        structure_ids = np.cumsum(n_atoms)[:-1]
-        n_centers = np.sum(n_atoms)
-
-        for manager in managers:
-            self.representation.compute(manager)
-
-        return managers
+        self._representation.compute(frames.managers)
+        return frames
 
     def get_num_coefficients(self):
         """Return the number of coefficients in the spherical expansion

@@ -52,7 +52,6 @@ namespace rascal {
 
     using Key_t = std::vector<int>;
 
-
     CalculatorBase() = default;
 
     //! Copy constructor
@@ -77,16 +76,21 @@ namespace rascal {
     void check_hyperparameters(const ReferenceHypers_t &, const Hypers_t &);
 
     //! return the name of the calculator
-    inline const std::string& get_name() {
-      return this->name;
+    inline const std::string & get_name() const { return this->name; }
+
+    //! return the name of the calculator's gradients
+    inline std::string get_gradient_name() const {
+      return this->name + std::string("_gradients");
+    }
+
+    inline const std::string & get_prefix() const {
+      return this->default_prefix;
     }
 
     //! set the name of the calculator
-    inline void set_name(const std::string& name) {
-      this->name = name;
-    }
+    inline void set_name(const std::string & name) { this->name = name; }
     //! set the prefix for the default naming of the representation
-    inline void set_default_prefix(const std::string& default_prefix) {
+    inline void set_default_prefix(const std::string & default_prefix) {
       this->default_prefix = default_prefix;
     }
     /**
@@ -96,7 +100,8 @@ namespace rascal {
      */
     inline void set_name(const Hypers_t & hyper) {
       if (hyper.count("identifier") == 1) {
-        this->set_name(hyper["identifier"].get<std::string>());
+        this->set_name(this->default_prefix +
+                       hyper["identifier"].get<std::string>());
       } else {
         this->set_name(this->default_prefix + hyper.dump());
       }
@@ -110,19 +115,6 @@ namespace rascal {
     // template<class StructureManager>
     // virtual void compute(StructureManager& ) = 0;
 
-    /**
-     * use the property interface to get a property from the manager to
-     * fill it with a new representation.
-     * it return a reference to the typed property of property_name
-     */
-    // TODO(alex)
-    template<template <class> class Property, class StructureManager>
-    inline decltype(auto) get_property(
-          std::shared_ptr<StructureManager>& manager,
-          const std::string& property_name) {      
-      return manager->template force_get_property_ref_from_top_manager<Property, StructureManager>(property_name, true);
-    }
-
     //! returns a string representation of the current options values
     //! in alphabetical order
     std::string get_options_string();
@@ -131,9 +123,9 @@ namespace rascal {
     std::string get_hypers_string();
 
     //! name of the calculator
-    std::string name{};
+    std::string name{""};
     //! default prefix of the calculator
-    std::string default_prefix{};
+    std::string default_prefix{""};
 
     //! stores all the hyper parameters of the representation
     Hypers_t hypers{};

@@ -1,9 +1,8 @@
 import numpy as np
 import json
 
-from ..neighbourlist.base import NeighbourListFactory
-from ..neighbourlist import get_neighbourlist, convert_to_structure
-from ..lib import RepresentationManager, FeatureManager
+from ..neighbourlist import AtomsList
+from ..lib import RepresentationManager
 from .base import CalculatorFactory
 from ..utils import FactoryPool
 from itertools import starmap
@@ -55,9 +54,9 @@ class SortedCoulombMatrix(object):
         )
 
         self.nl_options = [
-            dict(name='centers', args=[]),
-            dict(name='neighbourlist', args=[cutoff]),
-            dict(name='strict', args=[cutoff])
+            dict(name='centers', args=dict()),
+            dict(name='neighbourlist', args=dict(cutoff=cutoff)),
+            dict(name='strict', args=dict(cutoff=cutoff))
         ]
         self.misc = dict(method=method, n_workers=n_workers,
                          disable_pbar=disable_pbar)
@@ -87,23 +86,21 @@ class SortedCoulombMatrix(object):
 
         Returns
         -------
-        FeatureManager.Dense_double
+
             Object containing the representation
         """
-        structures = [convert_to_structure(frame) for frame in frames]
+        if not isinstance(frames, AtomsList):
+            frames = AtomsList(frames, self.nl_options)
 
-        inputs = [(structure, self.nl_options) for structure in structures]
-        managers = starmap(get_neighbourlist, inputs)
-
-        self.size = self.get_size(managers)
+        self.size = self.get_size(frames.managers)
         self.update_hyperparameters(size=self.size)
         hypers_str = json.dumps(self.hypers)
         self.rep_options = dict(name=self.name, args=[hypers_str])
-        self.representation = CalculatorFactory(self.rep_options)
+        self._representation = CalculatorFactory(self.rep_options)
 
-        map(self.representation.compute, managers)
+        self._representation.compute(frames.managers)
 
-        return managers
+        return frames
 
 
     def get_Nfeature(self):

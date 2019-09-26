@@ -165,7 +165,7 @@ namespace rascal {
     // numeric type for the representation features
     using Precision_t = typename Parent::Precision_t;
     // type of the data structure for the representation feaures
-    template<class StructureManager>
+    template <class StructureManager>
     using Property_t =
         Property<Precision_t, 1, 1, StructureManager, Eigen::Dynamic, 1>;
     // short hand type to help the iteration over the structure manager
@@ -178,7 +178,7 @@ namespace rascal {
 
     /* -------------------- rep-construc-start -------------------- */
     //! Constructor
-    CalculatorSortedCoulomb(const Hypers_t & hyper) {
+    explicit CalculatorSortedCoulomb(const Hypers_t & hyper) {
       this->set_default_prefix("sorted_coulomb_");
       this->check_hyperparameters(this->reference_hypers, hyper);
       // Extract the options and hyperparameters
@@ -210,18 +210,23 @@ namespace rascal {
      * @tparam StructureManager a (single or collection)
      * of structure manager(s) (in an iterator) held in shared_ptr
      */
-    template<class StructureManager>
-    void compute(StructureManager& managers);
+    template <class StructureManager>
+    void compute(StructureManager & managers);
 
     //! set hypers
     inline void set_hyperparameters(const Hypers_t &);
 
-    inline void update_central_cutoff(const double&);
+    inline void update_central_cutoff(const double &);
 
-    //! check if size of representation manager is enough for current structure
-    //! manager
-    template<class StructureManager>
-    void check_size_compatibility(StructureManager& manager) {
+    /**
+     * check if size of the calculator is enough for current structure
+     * manager.
+     * size refers to the parameter that regulate the feature size of the
+     * calculator.
+     */
+
+    template <class StructureManager>
+    void check_size_compatibility(StructureManager & manager) {
       for (auto center : manager) {
         auto n_neighbours{center.size()};
         if (n_neighbours > this->size) {
@@ -235,27 +240,35 @@ namespace rascal {
 
     /* -------------------- rep-interface-end -------------------- */
 
+    /* -------------------- compute-loop-begin -------------------- */
     //! loop over a collection of manangers (note that maps would raise a
     //! compilation error)
-    template <internal::CMSortAlgorithm AlgorithmType, class StructureManager, std::enable_if_t<internal::is_proper_iterator<StructureManager>::value, int> = 0>
-    inline void compute_loop(StructureManager& managers) {
-      for (auto& manager : managers) {
+    template <
+        internal::CMSortAlgorithm AlgorithmType, class StructureManager,
+        std::enable_if_t<internal::is_proper_iterator<StructureManager>::value,
+                         int> = 0>
+    inline void compute_loop(StructureManager & managers) {
+      for (auto & manager : managers) {
         this->compute_impl<AlgorithmType>(manager);
       }
     }
     //! if it is not a list of managers
-    template <internal::CMSortAlgorithm AlgorithmType, class StructureManager, std::enable_if_t<not (internal::is_proper_iterator<StructureManager>::value), int> = 0>
-    inline void compute_loop(StructureManager& manager) {
+    template <internal::CMSortAlgorithm AlgorithmType, class StructureManager,
+              std::enable_if_t<
+                  not(internal::is_proper_iterator<StructureManager>::value),
+                  int> = 0>
+    inline void compute_loop(StructureManager & manager) {
       this->compute_impl<AlgorithmType>(manager);
     }
+    /* -------------------- compute-loop-end -------------------- */
 
     //! Implementation of compute representation
     template <internal::CMSortAlgorithm AlgorithmType, class StructureManager>
-    inline void compute_impl(std::shared_ptr<StructureManager>& manager);
+    inline void compute_impl(std::shared_ptr<StructureManager> & manager);
 
     //! returns the distance matrix for a central atom
     template <class StructureManager>
-    void get_distance_matrix(std::shared_ptr<StructureManager>& manager,
+    void get_distance_matrix(std::shared_ptr<StructureManager> & manager,
                              ClusterRef_t<StructureManager, 1> & center,
                              Eigen::Ref<Eigen::MatrixXd> distance_mat,
                              Eigen::Ref<Eigen::MatrixXd> type_factor_mat);
@@ -344,11 +357,12 @@ namespace rascal {
     this->set_name(hyper);
   }
 
-  inline void CalculatorSortedCoulomb::update_central_cutoff(const double& cutoff) {
+  inline void
+  CalculatorSortedCoulomb::update_central_cutoff(const double & cutoff) {
     this->central_cutoff = cutoff;
 
     if ((this->hypers["interaction_cutoff"] < 0) or
-            this->hypers["interaction_cutoff"] > 2 * this->central_cutoff) {
+        this->hypers["interaction_cutoff"] > 2 * this->central_cutoff) {
       this->interaction_cutoff = 2 * this->central_cutoff;
       this->hypers["interaction_cutoff"] = this->interaction_cutoff;
     } else {
@@ -379,7 +393,7 @@ namespace rascal {
   /* ---------------------------------------------------------------------- */
   /* -------------------- rep-options-compute-start-------------------- */
   template <class StructureManager>
-  void CalculatorSortedCoulomb::compute(StructureManager& managers) {
+  void CalculatorSortedCoulomb::compute(StructureManager & managers) {
     auto option{this->options["sorting_algorithm"]};
 
     if (option == "distance") {
@@ -388,7 +402,7 @@ namespace rascal {
       compute_loop<internal::CMSortAlgorithm::RowNorm>(managers);
     } else {
       auto error_message{std::string("Option '") + option +
-                        std::string("' is not implemented.")};
+                         std::string("' is not implemented.")};
       throw std::invalid_argument(error_message.c_str());
     }
   }
@@ -396,12 +410,31 @@ namespace rascal {
 
   /* -------------------- rep-options-compute-impl-start -------------------- */
   template <internal::CMSortAlgorithm AlgorithmType, class StructureManager>
-  inline void CalculatorSortedCoulomb::compute_impl(std::shared_ptr<StructureManager>& manager) {
-    this->update_central_cutoff(manager->get_cutoff());
+  inline void CalculatorSortedCoulomb::compute_impl(
+      std::shared_ptr<StructureManager> & manager) {
+    using Prop_t = Property_t<StructureManager>;
 
-    // get a reference to the data container that will hold the representation
-    // in the structure manager
-    auto&& coulomb_matrices{this->get_property<Property_t>(manager, this->get_name())};
+    // TODO(felix) use the commented code bellow. needs changes in the tests
+    // because it actually runs cases where
+    // this->central_cutoff > manager->get_cutoff() is true.
+    this->update_central_cutoff(manager->get_cutoff());
+    // if (this->central_cutoff > manager->get_cutoff()) {
+    //   std::string error{R"(The hypers cutoff and the managers cutoff are not
+    //   compatible: )"}; error += std::to_string(this->central_cutoff) +
+    //   std::string(" > "); error +=  std::to_string(manager->get_cutoff());
+    //   throw std::runtime_error(error);
+    // }
+
+    // Get a reference to the data container where the computed representation
+    // is stored in the corresponding structure manager
+    auto && coulomb_matrices{
+        manager->template get_property_ref<Prop_t>(this->get_name())};
+
+    // if the representation has already been computed for the current
+    // structure then do nothing
+    if (coulomb_matrices.is_updated()) {
+      return;
+    }
 
     this->check_size_compatibility(manager);
 
@@ -454,9 +487,9 @@ namespace rascal {
   /* -------------------- rep-options-compute-impl-end -------------------- */
 
   /* ---------------------------------------------------------------------- */
-  template<class StructureManager>
+  template <class StructureManager>
   void CalculatorSortedCoulomb::get_distance_matrix(
-      std::shared_ptr<StructureManager>& manager,
+      std::shared_ptr<StructureManager> & manager,
       CalculatorSortedCoulomb::ClusterRef_t<StructureManager, 1> & center,
       Eigen::Ref<Eigen::MatrixXd> distance_mat,
       Eigen::Ref<Eigen::MatrixXd> type_factor_mat) {

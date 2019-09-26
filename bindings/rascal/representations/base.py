@@ -1,12 +1,13 @@
-from ..lib import RepresentationManager, FeatureManager
+from ..lib import RepresentationManager
 from ..utils.pool_worker import FactoryPool
 from ..neighbourlist.base import NeighbourListFactory
-from ..neighbourlist.structure_manager import convert_to_structure
+from ..neighbourlist.structure_manager import convert_to_structure_list
 
 import numpy as np
 import queue
 
-_representations_list = ["sortedcoulomb", "sphericalexpansion", "sphericalinvariants"]
+_representations_list = ["sortedcoulomb", "sphericalexpansion",
+                         "sphericalinvariants", "sphericalcovariants"]
 _representations = {}
 for k, v in RepresentationManager.__dict__.items():
     if "pybind11_builtins.pybind11_type" in str(type(v)):
