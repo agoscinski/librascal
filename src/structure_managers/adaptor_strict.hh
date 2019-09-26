@@ -55,7 +55,6 @@ namespace rascal {
     constexpr static size_t MaxOrder{ManagerImplementation::traits::MaxOrder};
     using LayerByOrder = typename LayerIncreaser<
         MaxOrder, typename ManagerImplementation::traits::LayerByOrder>::type;
-    typedef ManagerImplementation PreviousManager_t;
   };
 
   /**
@@ -77,9 +76,8 @@ namespace rascal {
    public:
     using Manager_t = AdaptorStrict<ManagerImplementation>;
     using Parent = StructureManager<Manager_t>;
+    using ImplementationPtr_t = std::shared_ptr<ManagerImplementation>;
     using traits = StructureManager_traits<AdaptorStrict>;
-    using PreviousManager_t = typename traits::PreviousManager_t;
-    using ImplementationPtr_t = std::shared_ptr<PreviousManager_t >;
     using AtomRef_t = typename ManagerImplementation::AtomRef_t;
     using Vector_ref = typename Parent::Vector_ref;
     using Hypers_t = typename Parent::Hypers_t;
@@ -234,10 +232,12 @@ namespace rascal {
     }
 
     //! Get the manager used to build the instance
-    ImplementationPtr_t get_previous_manager_impl() {
+    ImplementationPtr_t get_previous_manager() {
       return this->manager->get_shared_ptr();
     }
 
+    // BUG8486@(till) I deleted the non const getters, because they are not
+    // needed
     // if this was wrong, please explain
     //! returns the distance between atoms in a given pair
     template <size_t Order, size_t Layer>
@@ -359,7 +359,7 @@ namespace rascal {
   /*--------------------------------------------------------------------------*/
   template <class ManagerImplementation>
   AdaptorStrict<ManagerImplementation>::AdaptorStrict(
-      ImplementationPtr_t manager, double cutoff)
+      std::shared_ptr<ManagerImplementation> manager, double cutoff)
       : manager{std::move(manager)}, distance{std::make_shared<Distance_t>(
                                          *this)},
         dir_vec{std::make_shared<DirectionVector_t>(*this)}, cutoff{cutoff},
@@ -398,10 +398,9 @@ namespace rascal {
     }
 
     //! initialise the distance storage
-    this->distance =
-        this->template get_property_ptr<Distance_t>("distance", false, true);
+    this->distance = this->template get_property_ptr<Distance_t>("distance");
     this->dir_vec =
-        this->template get_property_ptr<DirectionVector_t>("dir_vec", false, true);
+        this->template get_property_ptr<DirectionVector_t>("dir_vec");
 
     this->distance->clear();
     this->dir_vec->clear();

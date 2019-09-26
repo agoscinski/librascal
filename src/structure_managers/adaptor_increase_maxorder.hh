@@ -52,8 +52,7 @@ namespace rascal {
   template <class ManagerImplementation>
   struct StructureManager_traits<AdaptorMaxOrder<ManagerImplementation>> {
     constexpr static AdaptorTraits::Strict Strict{AdaptorTraits::Strict::no};
-    constexpr static bool HasDistances{
-        ManagerImplementation::traits::HasDistances};
+    constexpr static bool HasDistances{false};
     constexpr static bool HasDirectionVectors{
         ManagerImplementation::traits::HasDirectionVectors};
     constexpr static int Dim{ManagerImplementation::traits::Dim};
@@ -63,7 +62,6 @@ namespace rascal {
     // Extend the layer by one with the new MaxOrder
     using LayerByOrder = typename LayerExtender<
         MaxOrder, typename ManagerImplementation::traits::LayerByOrder>::type;
-    typedef ManagerImplementation PreviousManager_t;
   };
 
   /* ---------------------------------------------------------------------- */
@@ -81,9 +79,8 @@ namespace rascal {
    public:
     using Manager_t = AdaptorMaxOrder<ManagerImplementation>;
     using Parent = StructureManager<Manager_t>;
+    using ImplementationPtr_t = std::shared_ptr<ManagerImplementation>;
     using traits = StructureManager_traits<AdaptorMaxOrder>;
-    using PreviousManager_t = typename traits::PreviousManager_t;
-    using ImplementationPtr_t = std::shared_ptr<PreviousManager_t >;
     using AtomRef_t = typename ManagerImplementation::AtomRef_t;
     template <size_t Order>
     using ClusterRef_t =
@@ -253,8 +250,9 @@ namespace rascal {
         return this->nb_neigh[access_index];
       }
     }
+
     //! Get the manager used to build the instance
-    ImplementationPtr_t get_previous_manager_impl() {
+    ImplementationPtr_t get_previous_manager() {
       return this->manager->get_shared_ptr();
     }
 
@@ -310,7 +308,7 @@ namespace rascal {
   //! Constructor of the next level manager
   template <class ManagerImplementation>
   AdaptorMaxOrder<ManagerImplementation>::AdaptorMaxOrder(
-      ImplementationPtr_t manager)
+      std::shared_ptr<ManagerImplementation> manager)
       : manager{std::move(manager)}, nb_neigh{},
         neighbours_atom_tag{}, offsets{} {
     if (traits::MaxOrder < 3) {

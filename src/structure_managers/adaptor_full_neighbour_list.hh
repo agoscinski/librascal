@@ -83,7 +83,7 @@ namespace rascal {
     using traits = StructureManager_traits<AdaptorFullList>;
     using Manager_t = AdaptorFullList<ManagerImplementation>;
     using PreviousManager_t = typename traits::PreviousManager_t;
-    using ImplementationPtr_t = std::shared_ptr<PreviousManager_t >;
+    using ImplementationPtr_t = std::shared_ptr<ManagerImplementation>;
     using parent_traits = typename ManagerImplementation::traits;
     using AtomRef_t = typename ManagerImplementation::AtomRef_t;
     using Vector_ref = typename Parent::Vector_ref;
@@ -299,7 +299,7 @@ namespace rascal {
   //! constructor implementations
   template <class ManagerImplementation>
   AdaptorFullList<ManagerImplementation>::AdaptorFullList(
-      ImplementationPtr_t manager)
+      std::shared_ptr<ManagerImplementation> manager)
       : manager{std::move(manager)}, nb_neigh{},
         neighbours_atom_tag{}, offsets{} {}
 
