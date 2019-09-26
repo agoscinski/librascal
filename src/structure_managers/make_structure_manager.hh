@@ -192,8 +192,6 @@ namespace rascal {
                                "of parameters as there are adaptors to build.");
     }
 
-    AtomicStructure<3> structure{};
-    structure.set_structure(structure_inputs);
     // instanciate the base manager
     auto manager_base = make_structure_manager<Manager>();
     // build the stack of adaptors
@@ -203,7 +201,11 @@ namespace rascal {
     auto manager = factory.get_manager();
     // give a structure to the underlying base manager
     // and update all the stack of adaptors
-    manager->update(structure);
+    if (structure_inputs.size() > 0) {
+      AtomicStructure<3> structure{};
+      structure.set_structure(structure_inputs);
+      manager->update(structure);
+    }
 
     return manager;
   }
@@ -224,6 +226,58 @@ namespace rascal {
         std::conditional_t<sizeof...(AdaptorImplementation) == 0, Manager,
                            typename internal::AdaptorTypeStacker<
                                Manager, AdaptorImplementation...>::type>;
+  };
+
+  namespace detail {
+    template <template <typename Manager,
+                        template <class> class... AdaptorImplementation>
+              class Collection,
+              typename SM, typename AdaptorTypeHolder_>
+    struct InjectTypeHolderHelper;
+
+    template <template <typename Manager,
+                        template <class> class... AdaptorImplementation>
+              class Collection,
+              typename SM, template <class> class... Ti>
+    struct InjectTypeHolderHelper<Collection, SM, AdaptorTypeHolder<Ti...>> {
+      using type = Collection<SM, Ti...>;
+    };
+
+    template <template <typename Manager,
+                        template <class> class... AdaptorImplementation>
+              class Collection,
+              typename StructureManagerTypeHolder_>
+    struct InjectTypeHolderUtil;
+
+    template <template <typename Manager,
+                        template <class> class... AdaptorImplementation>
+              class Collection,
+              typename... T>
+    struct InjectTypeHolderUtil<Collection, std::tuple<T...>> {
+      using type = typename InjectTypeHolderHelper<Collection, T...>::type;
+    };
+  }  // namespace detail
+  /**
+   * Utility class holding the fully typed Collection class in type member
+   *
+   * @tparam Collection a class templated by a structure manager and a list
+   * of adaptors
+   *
+   * @tparam StructureManagerTypeHolder_ a
+   *                  StructureManagerTypeHolder::type_list
+   *
+   * This utility does not help directly for templated function,
+   * so to handle this case the function should inserted in a functor.
+   * C++17 would allow to avoid the functor
+   * see https://stackoverflow.com/a/49291186/11609484.
+   */
+  template <template <typename Manager,
+                      template <class> class... AdaptorImplementation>
+            class Collection,
+            typename StructureManagerTypeHolder_>
+  struct TypeHolderInjector {
+    using type = typename detail::InjectTypeHolderUtil<
+        Collection, StructureManagerTypeHolder_>::type;
   };
 
   namespace internal {
@@ -253,6 +307,8 @@ namespace rascal {
   }  // namespace internal
 
   /**
+   * TODO(felix) use TypeHolderInjector to simplify this thing
+   *
    * Factory function to make a manager with its types provided with
    * a StructureManagerTypeHolder and arguments packaged in two json object.
    */
