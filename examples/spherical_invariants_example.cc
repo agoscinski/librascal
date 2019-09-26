@@ -118,10 +118,10 @@ int main(int argc, char * argv[]) {
   std::cout << std::endl;
   size_t center_count{0};
 
-  auto && soap_vectors{
-      manager->template get_property_ref<Prop_t>(representation.get_name())};
+  auto && soap_vectors{manager->template get_property_ref<Prop_t>(
+      representation.get_name(), true, true)};
   auto && soap_vector_gradients{manager->template get_property_ref<PropGrad_t>(
-      representation.get_gradient_name())};
+      representation.get_gradient_name(), true, true)};
 
   for (auto center : manager) {
     if (center_count >= n_centers_print) {

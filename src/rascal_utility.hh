@@ -81,8 +81,8 @@ namespace rascal {
         : std::true_type {};
 
     /**
-     * Here the proper iteraror means that it is a std Container and not
-     * a std AssociativeContainer
+     * Here the proper iteraror means that it is a std::Container and not
+     * a std::AssociativeContainer
      */
     template <class T>
     struct is_proper_iterator {
@@ -343,6 +343,11 @@ namespace rascal {
                  std::istream_iterator<BINARY>());
     }
 
+    /**
+     * extract the extension from a filename as the charaters after the last
+     * "."
+     * if it is not found it return an empty string
+     */
     inline std::string get_filename_extension(const std::string & filename) {
       auto const pos = filename.find_last_of(".");
       std::string extension{""};

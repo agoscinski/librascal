@@ -182,7 +182,7 @@ namespace rascal {
     using StructureManager_t = StructureManager<ManagerImplementation>;
     using traits = StructureManager_traits<ManagerImplementation>;
     using PreviousManager_t = typename traits::PreviousManager_t;
-    using ImplementationPtr_t = std::shared_ptr<PreviousManager_t >;
+    using ImplementationPtr_t = std::shared_ptr<PreviousManager_t>;
     //! type used to represent spatial coordinates, etc
     using Vector_t = Eigen::Matrix<double, traits::Dim, 1>;
     using Vector_ref = Eigen::Map<Vector_t>;
@@ -191,6 +191,7 @@ namespace rascal {
     using ClusterConstructor_t =
         typename internal::ClusterIndexConstructor<ClusterIndex_t,
                                                    StructureManager_t>;
+
     // The root manager is the only manager which fulfills this condition
     constexpr static bool IsRootImplementation =
         std::is_same<PreviousManager_t, ManagerImplementation>::value;
@@ -359,24 +360,19 @@ namespace rascal {
       return not(this->properties.find(name) == this->properties.end());
     }
 
-    template<bool IsRoot = IsRootImplementation,
-        std::enable_if_t<IsRoot, int> = 0>
-    inline bool has_stack_property(const std::string & name) const {
-      return this->has_layer_property(name);
-    }
-
     /**
      * Helper function to check if a property with the specifier `name` has
      * already been attached.
      */
-    // If this implementation is not root, look if the previous manager has property
-    template<bool IsRoot = IsRootImplementation,
-        std::enable_if_t<not(IsRoot), int> = 0>
+    // If this implementation is not root, look if the previous manager has
+    // property
+    template <bool IsRoot = IsRootImplementation,
+              std::enable_if_t<not(IsRoot), int> = 0>
     inline bool has_stack_property(const std::string & name) {
       if (this->has_layer_property(name)) {
         return true;
       }
-      return this->get_previous_manager()->has_stack_property(name);
+      return this->get_previous_manager()->has_layer_property(name);
     }
 
     template <typename UserProperty_t>
@@ -385,7 +381,7 @@ namespace rascal {
         std::stringstream error{};
         error << "A property of name '" << name
               << "' has already been registered"
-              << " in manager '" << this->name << "'";
+              << " in manager '" << name << "'";  // TODO(alex) fix name
         throw std::runtime_error(error.str());
       }
       auto property{std::make_shared<UserProperty_t>(this->implementation())};
@@ -409,9 +405,8 @@ namespace rascal {
     bool check_property_t(const std::string & name) const {
       if (not(this->has_stack_property(name))) {
         std::stringstream error{};
-        error << "A property of name '" << name
-              << "' does not exist"
-              << " in manager '" << this->name << "'";
+        error << "A property of name '" << name << "' does not exist"
+              << " in manager '" << name << "'";  // TODO(alex) fix name
         throw std::runtime_error(error.str());
       }
       auto && property = this->get_property_ptr(name, false);
@@ -426,8 +421,14 @@ namespace rascal {
     /**
      * Throws an error if property type given from user does not match actual
      * property type.
-     * TODO(all) Is the try and catch need here ? it will throw in the respective
-     * check_compatibility and we get the full stack with the debugger.
+     * 
+     * It is
+     * compared if each template parameter within the UserProperty is in
+     * agreement with the stored property of the given name.
+     *
+     * TODO(all) Is the try and catch need here ? it will throw in the
+     * respective check_compatibility and we get the full stack with the
+     * debugger.
      * @throw runtime_error if property with name does not exists
      * @return void
      */
@@ -444,56 +445,68 @@ namespace rascal {
 
     template <typename UserProperty_t>
     void validate_property_t(const std::string & name) const {
-      auto property = this->template get_property_ptr<UserProperty_t>(name);
+      auto property =
+          this->template get_property_ptr<UserProperty_t>(name, false);
       this->template validate_property_t<UserProperty_t>(property);
     }
 
     /**
-     * Returns a typed property of the given name from the top level manager. If this property does not exist in the top level manager, it is created.
+     * Returns a typed property of the given name from the top level manager. If
+     * this property does not exist in the top level manager, it is created.
      *
      * @tparam UserProperty_t full type of the property to return.
      *
      * @param name Name of the property to get.ß
-     * @param validate_property Property is validated if flag is on. It is compared if each template parameter within the UserProperty is in agreement with the stored property of the given name.
+     * @param validate_property Property is validated if flag is on. It is
+     * compared if each template parameter within the UserProperty is in
+     * agreement with the stored property of the given name.
      *
-     * @throw runtime_error If validate_property is on and UserProperty_t is not compatible with property type of the given name.
+     * @throw runtime_error If validate_property is on and UserProperty_t is not
+     * compatible with property type of the given name.
      */
-    //template <typename UserProperty_t>
-    //std::shared_ptr<UserProperty_t> force_get_property_ptr_from_top(const std::string & name, bool validate_property) {
+    // template <typename UserProperty_t>
+    // std::shared_ptr<UserProperty_t> force_get_property_ptr_from_top(const
+    // std::string & name, bool validate_property) {
     //  if (not(this->has_layer_property(name))) {
     //    this->create_property<UserProperty_t>(name);
     //  }
     //  return this->get_property_ptr<UserProperty_t>(name, validate_property);
 
-
-    //template<template <typename> typename PartialProperty_t, typename Manager_t>
-    //decltype(auto) force_get_property_ptr_from_top(const std::string & name, bool validate_property) {
+    // template<template <typename> typename PartialProperty_t, typename
+    // Manager_t> decltype(auto) force_get_property_ptr_from_top(const
+    // std::string & name, bool validate_property) {
     //  using UserProperty_t = PartialProperty_t<Manager_t>;
-    //  return this->force_get_property_ptr_from_top<UserProperty_t>(name, validate_property);
+    //  return this->force_get_property_ptr_from_top<UserProperty_t>(name,
+    //  validate_property);
     //}
 
-    //template <typename UserProperty_t>
-    //UserProperty_t & force_get_property_ref_from_top(const std::string & name, bool validate_property) {
-    //  return *this->force_get_property_ptr_from_top<UserProperty_t>(name, validate_property);
+    // template <typename UserProperty_t>
+    // UserProperty_t & force_get_property_ref_from_top(const std::string &
+    // name, bool validate_property) {
+    //  return *this->force_get_property_ptr_from_top<UserProperty_t>(name,
+    //  validate_property);
     //}
 
-    //template<template <typename> typename PartialProperty_t, typename Manager_t>
-    //decltype(auto) force_get_property_ref_from_top(const std::string & name, bool validate_property) {
+    // template<template <typename> typename PartialProperty_t, typename
+    // Manager_t> decltype(auto) force_get_property_ref_from_top(const
+    // std::string & name, bool validate_property) {
     //  using UserProperty_t = PartialProperty_t<Manager_t>;
-    //  return this->force_get_property_ref_from_top<UserProperty_t>(name, validate_property);
+    //  return this->force_get_property_ref_from_top<UserProperty_t>(name,
+    //  validate_property);
     //}
-
-
 
     /**
-     * Returns  
+     * Returns
      *
      * @tparam UserProperty_t full type of the property to return.
      *
      * @param name Name of the property to get.ß
-     * @param validate_property Property is validated if flag is on. It is compared if each template parameter within the UserProperty is in agreement with the stored property of the given name.
+     * @param validate_property Property is validated if flag is on. It is
+     * compared if each template parameter within the UserProperty is in
+     * agreement with the stored property of the given name.
      *
-     * @throw runtime_error If validate_property is on and UserProperty_t is not compatible with property type of the given name.
+     * @throw runtime_error If validate_property is on and UserProperty_t is not
+     * compatible with property type of the given name.
      * @throw runtime_error If property has not been found in manager stack
      */
 
@@ -503,37 +516,46 @@ namespace rascal {
      * @tparam UserProperty_t full type of the property to return.
      *
      * @param name The name of the property to get.
-     * @param validate_property property is validated if this parameter is true It is compared if each template parameter within the UserProperty is in agreement with the stored property of the given name.
+     * @param validate_property property is validated if this parameter is true
+     * It is compared if each template parameter within the UserProperty is in
+     * agreement with the stored property of the given name.
      * @param force_creation
      *
-     * @throw runtime_error If validate_property is true and UserProperty_t is not compatible with property type of the given name.
-     * @throw runtime_error If force_creation is false and property has not been found in manager stack.
+     * @throw runtime_error If validate_property is true and UserProperty_t is
+     * not compatible with property type of the given name.
+     * @throw runtime_error If force_creation is false and property has not been
+     * found in manager stack.
      */
     template <typename UserProperty_t>
-    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name, bool validate_property, bool force_creation) {
+    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name,
+                                                     bool validate_property,
+                                                     bool force_creation) {
       if (this->has_stack_property(name)) {
-        return this->template get_existing_property_ptr<UserProperty_t>(name, validate_property);
+        return this->template get_property_ptr<UserProperty_t>(
+            name, validate_property);
       }
       if (force_creation) {
         this->template create_property<UserProperty_t>(name);
-        return this->template get_existing_property_ptr<UserProperty_t>(name, false);
+        return this->template get_property_ptr<UserProperty_t>(name, false);
       }
       std::stringstream error{};
       error << "No property of name '" << name << "' has been registered";
       throw std::runtime_error(error.str());
-      
     }
 
     template <typename UserProperty_t>
-    UserProperty_t & get_property_ref(const std::string & name, bool validate_property, bool force_creation) {
-      return *this->template get_property_ptr<UserProperty_t>(name, validate_property, force_creation);
+    UserProperty_t & get_property_ref(const std::string & name,
+                                      bool validate_property,
+                                      bool force_creation) {
+      return *this->template get_property_ptr<UserProperty_t>(
+          name, validate_property, force_creation);
     }
 
     /**
      * For MD when properties needs to be updated
      */
-    template<bool IsRoot = IsRootImplementation,
-        std::enable_if_t<IsRoot, int> = 0>
+    template <bool IsRoot = IsRootImplementation,
+              std::enable_if_t<IsRoot, int> = 0>
     inline void set_updated_property_status(const bool & is_updated) {
       for (auto & element : this->properties) {
         auto & property{element.second};
@@ -541,14 +563,15 @@ namespace rascal {
       }
     }
 
-    template<bool IsRoot = IsRootImplementation,
-        std::enable_if_t<not(IsRoot), int> = 0>
+    template <bool IsRoot = IsRootImplementation,
+              std::enable_if_t<not(IsRoot), int> = 0>
     inline void set_updated_property_status(const bool & is_updated) {
       for (auto & element : this->properties) {
         auto & property{element.second};
         property->set_updated_status(is_updated);
       }
-      return this->get_previous_manager()->set_updated_property_status(is_updated);
+      return this->get_previous_manager()->set_updated_property_status(
+          is_updated);
     }
 
     inline void set_updated_property_status(const std::string & name,
@@ -640,38 +663,86 @@ namespace rascal {
     }
 
     template <size_t Order, size_t Layer,
-        bool HasDistances = traits::HasDistances,
-        typename std::enable_if_t<HasDistances, int> = 0>
-    inline double &
-    get_distance(const ClusterRefKey<Order, Layer> & pair) {
+              bool HasDistances = traits::HasDistances,
+              typename std::enable_if_t<HasDistances, int> = 0>
+    inline double & get_distance(const ClusterRefKey<Order, Layer> & pair) {
       return this->get_previous_manager()->get_distance(pair);
     }
 
     template <size_t Order, size_t Layer,
-        bool HasDistances = traits::HasDistances,
-        typename std::enable_if_t<not(HasDistances), int> = 0>
-    inline double &
-    get_distance(const ClusterRefKey<Order, Layer> &) const {
-      throw std::runtime_error("Trying to get_distance from a manager stack without computed distances.");
+              bool HasDistances = traits::HasDistances,
+              typename std::enable_if_t<not(HasDistances), int> = 0>
+    inline double & get_distance(const ClusterRefKey<Order, Layer> &) const {
+      throw std::runtime_error("Trying to get_distance from a manager stack "
+                               "without computed distances.");
     }
 
     template <size_t Order, size_t Layer,
-        bool HasDirectionVectors = traits::HasDirectionVectors,
-        typename std::enable_if_t<HasDirectionVectors, int> = 0>
+              bool HasDirectionVectors = traits::HasDirectionVectors,
+              typename std::enable_if_t<HasDirectionVectors, int> = 0>
     inline const Vector_ref
     get_direction_vector(const ClusterRefKey<Order, Layer> & pair) {
       return this->get_previous_manager()->get_direction_vector(pair);
     }
 
     template <size_t Order, size_t Layer,
-        bool HasDirectionVectors = traits::HasDirectionVectors,
-        typename std::enable_if_t<not(HasDirectionVectors), int> = 0>
+              bool HasDirectionVectors = traits::HasDirectionVectors,
+              typename std::enable_if_t<not(HasDirectionVectors), int> = 0>
     inline const Vector_ref
     get_direction_vector(const ClusterRefKey<Order, Layer> &) const {
-      throw std::runtime_error("Trying to get direction vectors from a manager stack without computed direction vectors.");
+      throw std::runtime_error("Trying to get direction vectors from a manager "
+                               "stack without computed direction vectors.");
     }
 
-   protected:
+    template <typename UserProperty_t, bool IsRoot = IsRootImplementation,
+              std::enable_if_t<IsRoot, int> = 0>
+    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name,
+                                                     bool validate_property) {
+      if (this->has_layer_property(name)) {
+        auto property = this->properties.at(name);
+        if (validate_property) {
+          this->template validate_property_t<UserProperty_t>(property);
+        }
+        return std::static_pointer_cast<UserProperty_t>(property);
+      }
+      std::stringstream error{};
+      error << "A property of name '" << name << "' does not exist"
+            << " in manager '" << name << "'";  // TODO(alex) fix name
+      throw std::runtime_error(error.str());
+    }
+
+    /**
+     * Returns the property of the given name. Assumes that the property exists
+     * somewhere in the stack, therefore applies no checks.
+     *
+     * @tparam UserProperty_t full type of the property to return.
+     *
+     * @param name the name of the property.
+     * @param validate_property the property is validated if flag is true. 
+     *
+     * It is
+     * compared if each template parameter within the UserProperty is in
+     * agreement with the stored property of the given name.
+     *
+     * @throw  runtime error if property name does not exist.
+     * @throw  runtime error if property with name does not comply with given
+     *         user property type
+     */
+    template <typename UserProperty_t, bool IsRoot = IsRootImplementation,
+              std::enable_if_t<not(IsRoot), int> = 0>
+    std::shared_ptr<UserProperty_t> get_property_ptr(const std::string & name,
+                                                     bool validate_property) {
+      if (this->has_layer_property(name)) {
+        auto property = this->properties.at(name);
+        if (validate_property) {
+          this->template validate_property_t<UserProperty_t>(property);
+        }
+        return std::static_pointer_cast<UserProperty_t>(property);
+      }
+      return this->get_previous_manager()
+          ->template get_property_ptr<UserProperty_t>(name, validate_property);
+    }
+
     /**
      * Update itself and send update signal to children nodes
      * Should only be used in the StructureManagerRoot
@@ -736,7 +807,7 @@ namespace rascal {
     inline const ClusterIndex_t & get_cluster_indices_container() const {
       return this->cluster_indices_container;
     }
-    
+
     ImplementationPtr_t get_previous_manager() {
       return this->implementation().get_previous_manager_impl();
     }
@@ -749,31 +820,9 @@ namespace rascal {
      * in adaptors accordingly via the lower level indices and a
      * Order-dependend index is appended to the array.
      */
-    ClusterIndex_t cluster_indices_container;  
+    ClusterIndex_t cluster_indices_container;
 
     std::map<std::string, std::shared_ptr<PropertyBase>> properties{};
-   private:
-    /**
-     * Returns the property of the given name. Assumes that the property exists somewhere in the stack, therefore applies no checks.
-     *
-     * @tparam UserProperty_t full type of the property to return.
-     *
-     * @param name Name of the property to get.ß
-     * @param validate_property Property is validated if flag is on. It is compared if each template parameter within the UserProperty is in agreement with the stored property of the given name.
-     *
-     * @throw std::map::at runtime error if property name does not exist.
-     */
-    template <typename UserProperty_t>
-    std::shared_ptr<UserProperty_t> get_existing_property_ptr (const std::string & name, bool validate_property) {
-      if(this->has_layer_property(name)) {
-        auto property = this->properties.at(name);
-        if (validate_property) {
-          this->template validate_property_t<UserProperty_t>(property);
-        }
-        return std::static_pointer_cast<UserProperty_t>(property);
-      }
-      return this->get_previous_manager()->template get_existing_property_ptr<UserProperty_t>(name, validate_property);
-    }
   };
 
   /* ----------------------------------------------------------------------
@@ -983,6 +1032,12 @@ namespace rascal {
     using IndexConstArray_t = typename ThisParentClass::IndexConstArray;
     using IndexArray_t = typename ThisParentClass::IndexArray;
 
+    static constexpr bool HasCenterPairOrderOne{traits::HasCenterPair and
+                                                Order == 1};
+
+    static constexpr bool HasCenterPairOrderTwo{traits::HasCenterPair and
+                                                Order == 2};
+
     //! Default constructor
     ClusterRef() = delete;
 
@@ -1026,6 +1081,73 @@ namespace rascal {
     }
 
     /**
+     * Getter for a ClusterRefKey refering to the current j-atom of the
+     * ij-pair.
+     *
+     * if you try to use this function and Order != 2 then
+     * you will get an error about not finding the function to call
+     * because of SFINAE.
+     *
+     * @return ClusterRefKey of order 1 and proper layer
+     */
+    template <size_t Order_ = Order, std::enable_if_t<Order_ == 2, int> = 0>
+    inline auto get_atom_j() {
+      auto && manager = it.get_manager();
+      auto && atom_j_tag = this->get_internal_neighbour_atom_tag();
+      auto && atom_j_index = manager.get_atom_index(atom_j_tag);
+      auto atom_j_it = manager.get_iterator_at(atom_j_index, 0);
+      constexpr static size_t ClusterLayer_{
+          ManagerImplementation::template cluster_layer_from_order<1>()};
+      auto atom_j = static_cast<ClusterRefKey<1, ClusterLayer_>>(*atom_j_it);
+      return atom_j;
+    }
+
+    /**
+     * Getter for a ClusterRefKey refering to the ii-pair of the current
+     * i-atom.
+     *
+     * if you try to use this function and HasCenterPair == false then
+     * you will get an error about not finding the function to call
+     * because of SFINAE.
+     *
+     * @return ClusterRefKey of order 2 and proper layer
+     */
+    template <bool T = HasCenterPairOrderOne, std::enable_if_t<T, int> = 0>
+    inline auto get_atom_ii() {
+      static_assert(traits::MaxOrder > 1, "Need neighbors to get one");
+
+      auto && atom_ii_it = this->with_self_pair().begin();
+      constexpr static size_t ClusterLayer_{
+          ManagerImplementation::template cluster_layer_from_order<2>()};
+      auto atom_ii = static_cast<ClusterRefKey<2, ClusterLayer_>>(*atom_ii_it);
+      return atom_ii;
+    }
+
+    /**
+     * Getter for a ClusterRefKey refering to the current jj-pair associated
+     * to the current ij-pair.
+     *
+     * if you try to use this function and HasCenterPair == false then
+     * you will get an error about not finding the function to call
+     * because of SFINAE.
+     *
+     * @return ClusterRefKey of order 2 and proper layer
+     */
+    template <bool T = HasCenterPairOrderTwo, std::enable_if_t<T, int> = 0>
+    inline auto get_atom_jj() {
+      auto && manager = it.get_manager();
+      auto && atom_j_tag = this->get_atom_tag();
+      auto && atom_j_index = manager.get_atom_index(atom_j_tag);
+      auto && atom_j_it = manager.get_iterator_at(atom_j_index, 0);
+      auto && atom_j = *atom_j_it;
+      auto && atom_jj_it = atom_j.with_self_pair().begin();
+      constexpr static size_t ClusterLayer_{
+          ManagerImplementation::template cluster_layer_from_order<2>()};
+      auto atom_jj = static_cast<ClusterRefKey<2, ClusterLayer_>>(*atom_jj_it);
+      return atom_jj;
+    }
+
+    /**
      * Returns the position of the last atom in the cluster, e.g. when
      * cluster order==1 it is the atom position, when cluster order==2 it is
      * the neighbour position, etc.
@@ -1062,10 +1184,25 @@ namespace rascal {
       return this->it.get_manager();
     }
     //! start of the iteration over the cluster itself
+    template <bool T = HasCenterPairOrderOne, std::enable_if_t<not(T), int> = 0>
     inline iterator begin() {
       std::array<size_t, Order> counters{this->it.get_counters()};
       auto offset = this->get_manager().get_offset(counters);
       return iterator(*this, 0, offset);
+    }
+    /**
+     * start of the iteration over the cluster itself.
+     *
+     * Special case when HasCenterPair == true and Order == 1. The default
+     * iteration in this case does not include the ii-pair by starting at 1
+     * since the ii-pair is the first element.
+     * To include the ii-pair to the iteration use .with_self_pair()
+     */
+    template <bool T = HasCenterPairOrderOne, std::enable_if_t<T, int> = 0>
+    inline iterator begin() {
+      std::array<size_t, Order> counters{this->it.get_counters()};
+      auto offset = this->get_manager().get_offset(counters);
+      return iterator(*this, 1, offset);
     }
     //! end of the iterations over the cluster itself
     inline iterator end() {
@@ -1087,7 +1224,14 @@ namespace rascal {
     const std::array<int, Order> & get_atom_tag_list() const {
       return this->atom_tag_list;
     }
-
+    /**
+     * Allows to set the atom tag at the atom index (cluster of Order 1 index)
+     *
+     * @param index atom index (cluster of Order 1 index)
+     */
+    inline void set_atom_tag(const size_t index, const int tag) {
+      this->atom_tag_list[index] = tag;
+    }
     inline Iterator_t & get_iterator() { return this->it; }
     inline const Iterator_t & get_iterator() const { return this->it; }
 
@@ -1101,6 +1245,51 @@ namespace rascal {
     }
     //!`atom_cluster_indices` is an initially contiguous numbering of atoms
     Iterator_t & it;
+
+    /**
+     * Helper struct to only iterate in a customised range.
+     */
+    template <class ManagerImplementation_ = ManagerImplementation,
+              size_t Order_ = Order>
+    struct CustomProxy {
+      using ClusterRef_t = typename StructureManager<
+          ManagerImplementation_>::template ClusterRef<Order_>;
+      using iterator = typename ClusterRef_t::iterator;
+      friend iterator;
+
+      CustomProxy(ClusterRef_t & cluster_ref, size_t & start, size_t & offset,
+                  size_t & finish)
+          : cluster_ref{cluster_ref}, start{start}, offset{offset},
+            finish{finish} {}
+
+      inline iterator begin() {
+        return iterator(cluster_ref, this->start, this->offset);
+      }
+      //! end of the iterations over the cluster itself
+      inline iterator end() {
+        return iterator(cluster_ref, this->finish,
+                        std::numeric_limits<size_t>::max());
+      }
+      ClusterRef_t & cluster_ref;
+      size_t start;
+      size_t offset;
+      size_t finish;
+    };
+
+   public:
+    /**
+     * Return an iterable for Order == 2 that includes the self pair if
+     * HasCenterPair == true. If HasCenterPair == false then its the
+     * regular iteration.
+     */
+    inline CustomProxy<ManagerImplementation, Order> with_self_pair() {
+      std::array<size_t, Order> counters{this->it.get_counters()};
+      size_t offset{this->get_manager().get_offset(counters)};
+      size_t finish{this->size()};
+      size_t start{0};
+      return CustomProxy<ManagerImplementation, Order>(*this, start, offset,
+                                                       finish);
+    }
 
    private:
   };

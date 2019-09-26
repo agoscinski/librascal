@@ -39,6 +39,24 @@
 
 namespace rascal {
 
+  /**
+   * A container to hold the multiple managers associated with one stack of
+   * managers and allows iterations over them. Each manager stack needs to
+   * initialized stack by stack. This class provides functions to do this job.
+   *
+   * ManagerCollection<StructureManagerCenter, AdaptorNeighbourList,
+   *                   AdaptorStrict>
+   *
+   * ->
+   *  initializes                                     StructureManagerCenter
+   *  initializes                AdaptorNeighbourList<StructureManagerCenter>
+   *  initializes AdaptorStrict<<AdaptorNeighbourList<StructureManagerCenter>>
+   *  and are contained in the `managers` member variable.
+   *
+   * @tparam Manager the root manager implementation
+   * @tparam AdaptorImplementationPack the adaptors stacked on top in the order
+   * of stacking
+   */
   template <typename Manager,
             template <class> class... AdaptorImplementationPack>
   class ManagerCollection {
@@ -194,7 +212,8 @@ namespace rascal {
 
       if (not structures.is_object()) {
         throw std::runtime_error(
-            R"(The first level of the ase format is a dictionary with indicies as keys to the structures)");
+            R"(The first level of the ase format is a dictionary with indicies
+                as keys to the structures)");
       }
 
       if (structures.count("ids") == 1) {
@@ -232,8 +251,8 @@ namespace rascal {
 
       auto property_name{this->get_calculator_name(calculator, false)};
 
-      auto && property_ =
-          managers[0]->template get_property_ref<Prop_t>(property_name);
+      auto && property_ = managers[0]->template get_property_ref<Prop_t>(
+          property_name, true, true);
       // assume inner_size is consistent for all managers
       int inner_size{property_.get_nb_comp()};
 
@@ -267,8 +286,8 @@ namespace rascal {
         features.setZero();
         int i_row{0};
         for (auto & manager : managers) {
-          auto && property =
-              manager->template get_property_ref<Prop_t>(property_name);
+          auto && property = manager->template get_property_ref<Prop_t>(
+              property_name, true, true);
           auto n_rows_manager = property.get_nb_item();
           property.fill_dense_feature_matrix(
               features.block(i_row, 0, n_rows_manager, inner_size));
@@ -290,8 +309,8 @@ namespace rascal {
                         int n_rows, int inner_size) {
         Keys_t all_keys{};
         for (auto & manager : managers) {
-          auto && property =
-              manager->template get_property_ref<Prop_t>(property_name);
+          auto && property = manager->template get_property_ref<Prop_t>(
+              property_name, true, true);
           auto keys = property.get_keys();
           all_keys.insert(keys.begin(), keys.end());
         }
@@ -301,8 +320,8 @@ namespace rascal {
         features.setZero();
         int i_row{0};
         for (auto & manager : managers) {
-          auto && property =
-              manager->template get_property_ref<Prop_t>(property_name);
+          auto && property = manager->template get_property_ref<Prop_t>(
+              property_name, true, true);
           auto n_rows_manager = property.size();
           property.fill_dense_feature_matrix(
               features.block(i_row, 0, n_rows_manager, n_cols), all_keys);
@@ -346,8 +365,8 @@ namespace rascal {
       auto property_name{this->get_calculator_name(calculator, is_gradients)};
 
       for (auto & manager : this->managers) {
-        auto && property =
-            manager->template get_property_ref<Prop_t>(property_name);
+        auto && property = manager->template get_property_ref<Prop_t>(
+            property_name, true, true);
         auto keys = property.get_keys();
         all_keys.insert(keys.begin(), keys.end());
       }
@@ -371,8 +390,8 @@ namespace rascal {
       auto property_name{this->get_calculator_name(calculator, is_gradients)};
 
       for (auto & manager : this->managers) {
-        auto && property =
-            manager->template get_property_ref<Prop_t>(property_name);
+        auto && property = manager->template get_property_ref<Prop_t>(
+            property_name, true, true);
         n_elements += property.get_nb_item();
       }
 

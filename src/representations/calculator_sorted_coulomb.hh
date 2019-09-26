@@ -178,7 +178,8 @@ namespace rascal {
 
     /* -------------------- rep-construc-start -------------------- */
     //! Constructor
-    explicit CalculatorSortedCoulomb(const Hypers_t & hyper) {
+    explicit CalculatorSortedCoulomb(const Hypers_t & hyper)
+        : CalculatorBase{} {
       this->set_default_prefix("sorted_coulomb_");
       this->check_hyperparameters(this->reference_hypers, hyper);
       // Extract the options and hyperparameters
@@ -214,9 +215,9 @@ namespace rascal {
     void compute(StructureManager & managers);
 
     //! set hypers
-    inline void set_hyperparameters(const Hypers_t &);
+    inline void set_hyperparameters(const Hypers_t & /*hypers*/);
 
-    inline void update_central_cutoff(const double &);
+    inline void update_central_cutoff(const double & /*cutoff*/);
 
     /**
      * check if size of the calculator is enough for current structure
@@ -427,8 +428,8 @@ namespace rascal {
 
     // Get a reference to the data container where the computed representation
     // is stored in the corresponding structure manager
-    auto && coulomb_matrices{
-        manager->template get_property_ref<Prop_t>(this->get_name())};
+    auto && coulomb_matrices{manager->template get_property_ref<Prop_t>(
+        this->get_name(), true, true)};
 
     // if the representation has already been computed for the current
     // structure then do nothing

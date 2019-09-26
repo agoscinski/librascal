@@ -28,6 +28,7 @@
 #include "structure_managers/structure_manager_centers.hh"
 #include "structure_managers/adaptor_strict.hh"
 #include "structure_managers/adaptor_neighbour_list.hh"
+#include "structure_managers/adaptor_center_contribution.hh"
 #include "structure_managers/make_structure_manager.hh"
 #include "rascal_utility.hh"
 #include "representations/calculator_sorted_coulomb.hh"
@@ -49,9 +50,10 @@
 using namespace rascal;  // NOLINT
 
 using Representation_t = CalculatorSphericalExpansion;
-using Manager_t = AdaptorStrict<AdaptorNeighbourList<StructureManagerCenters>>;
+using Manager_t = AdaptorStrict<
+    AdaptorCenterContribution<AdaptorNeighbourList<StructureManagerCenters>>>;
 using Prop_t = typename CalculatorSphericalInvariants::Property_t<Manager_t>;
-using PropDer_t =
+using PropGrad_t =
     typename CalculatorSphericalInvariants::PropertyGradient_t<Manager_t>;
 
 int main(int argc, char * argv[]) {
@@ -84,13 +86,17 @@ int main(int argc, char * argv[]) {
   json ad1{{"name", "AdaptorNeighbourList"},
            {"initialization_arguments",
             {{"cutoff", cutoff}, {"consider_ghost_neighbours", false}}}};
+  json ad1b{{"name", "AdaptorCenterContribution"},
+            {"initialization_arguments", {}}};
   json ad2{{"name", "AdaptorStrict"},
            {"initialization_arguments", {{"cutoff", cutoff}}}};
   adaptors.emplace_back(ad1);
+  adaptors.emplace_back(ad1b);
   adaptors.emplace_back(ad2);
   auto manager =
       make_structure_manager_stack<StructureManagerCenters,
-                                   AdaptorNeighbourList, AdaptorStrict>(
+                                   AdaptorNeighbourList,
+                                   AdaptorCenterContribution, AdaptorStrict>(
           structure, adaptors);
 
   Representation_t representation{hypers};
@@ -115,17 +121,18 @@ int main(int argc, char * argv[]) {
                "then species, along the rows; n-l-m along the columns.";
   std::cout << std::endl;
 
-  auto && expansions_coefficients{
-      manager->template get_property_ref<Prop_t>(representation.get_name())};
+  auto && expansions_coefficients{manager->template get_property_ref<Prop_t>(
+      representation.get_name(), true, true)};
   auto && expansions_coefficients_gradient{
-      manager->template get_property_ref<PropDer_t>(
-          representation.get_gradient_name())};
+      manager->template get_property_ref<PropGrad_t>(
+          representation.get_gradient_name(), true, true)};
 
   size_t center_count{0};
   for (auto center : manager) {
     if (center_count >= n_centers_print) {
       break;
     }
+    auto ii_pair = center.get_atom_ii();
     size_t n_species_center{expansions_coefficients.get_keys(center).size()};
     std::cout << "============================" << std::endl;
     std::cout << "Center " << center.get_index();
@@ -134,7 +141,7 @@ int main(int argc, char * argv[]) {
     std::cout << std::endl;
     std::cout << "Gradient of this expansion wrt center pos: " << std::endl;
     std::cout << Eigen::Map<Eigen::MatrixXd>(
-        expansions_coefficients_gradient.get_dense_row(center).data(),
+        expansions_coefficients_gradient.get_dense_row(ii_pair).data(),
         3 * n_species_center, expansions_coefficients_gradient.get_nb_comp());
     std::cout << std::endl;
     size_t neigh_count{0};

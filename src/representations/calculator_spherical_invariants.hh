@@ -230,7 +230,7 @@ namespace rascal {
     using ClusterRef_t = typename StructureManager::template ClusterRef<Order>;
 
     explicit CalculatorSphericalInvariants(const Hypers_t & hyper)
-        : rep_expansion{hyper} {
+        : CalculatorBase{}, rep_expansion{hyper} {
       this->set_default_prefix("spherical_invariants_");
       this->set_hyperparameters(hyper);
     }
@@ -453,26 +453,24 @@ namespace rascal {
             SphericalInvariantsType::PowerSpectrum)])};
     auto & l_factors{precomputation->l_factors};
 
-    // TODO(felix) use the updated mech of the prop to avoid recomputing
-    // if the prop already exists and is uptodate
     // Compute the spherical expansions of the current structure
     rep_expansion.compute(manager);
 
     auto && expansions_coefficients{
-        manager->template get_property_ref<PropExp_t>(
-            rep_expansion.get_name())};
+        manager->template get_property_ref<PropExp_t>(rep_expansion.get_name(),
+                                                      true, true)};
 
     // No error if gradients not computed; just an empty array in that case
     auto && expansions_coefficients_gradient{
         manager->template get_property_ref<PropGradExp_t>(
-            rep_expansion.get_gradient_name())};
+            rep_expansion.get_gradient_name(), true, true)};
 
-    auto && soap_vectors{
-        manager->template get_property_ref<Prop_t>(this->get_name())};
+    auto && soap_vectors{manager->template get_property_ref<Prop_t>(
+        this->get_name(), true, true)};
 
     auto && soap_vector_gradients{
         manager->template get_property_ref<PropGrad_t>(
-            this->get_gradient_name())};
+            this->get_gradient_name(), true, true)};
 
     // if the representation has already been computed for the current
     // structure then do nothing
@@ -491,7 +489,7 @@ namespace rascal {
     for (auto center : manager) {
       auto & coefficients{expansions_coefficients[center]};
       auto & soap_vector{soap_vectors[center]};
-
+      // Compute the Powerspectrum coefficients
       for (const auto & el1 : coefficients) {
         spair_type[0] = el1.first[0];
         auto & coef1{el1.second};
@@ -539,9 +537,10 @@ namespace rascal {
         soap_vector.normalize();
       }
       if (this->compute_gradients) {
+        auto ii_pair = center.get_atom_ii();
         auto & grad_center_coefficients{
-            expansions_coefficients_gradient[center]};
-        auto & soap_center_gradient{soap_vector_gradients[center]};
+            expansions_coefficients_gradient[ii_pair]};
+        auto & soap_center_gradient{soap_vector_gradients[ii_pair]};
         for (const auto & grad_species_1 : grad_center_coefficients) {
           spair_type[0] = grad_species_1.first[0];
           const auto & expansion_coefficients_1{
@@ -829,19 +828,19 @@ namespace rascal {
     rep_expansion.compute(manager);
 
     auto && expansions_coefficients{
-        manager->template get_property_ref<PropExp_t>(
-            rep_expansion.get_name())};
+        manager->template get_property_ref<PropExp_t>(rep_expansion.get_name(),
+                                                      true, true)};
 
     auto & expansions_coefficients_gradient{
         manager->template get_property_ref<PropGradExp_t>(
-            rep_expansion.get_gradient_name())};
+            rep_expansion.get_gradient_name(), true, true)};
 
-    auto && soap_vectors{
-        manager->template get_property_ref<Prop_t>(this->get_name())};
+    auto && soap_vectors{manager->template get_property_ref<Prop_t>(
+        this->get_name(), true, true)};
 
     auto && soap_vector_gradients{
         manager->template get_property_ref<PropGrad_t>(
-            this->get_gradient_name())};
+            this->get_gradient_name(), true, true)};
     // if the representation has already been computed for the current
     // structure then do nothing
     if (soap_vectors.is_updated()) {
@@ -868,9 +867,10 @@ namespace rascal {
       }
 
       if (this->compute_gradients) {
+        auto ii_pair = center.get_atom_ii();
         auto & grad_center_coefficients{
-            expansions_coefficients_gradient[center]};
-        auto & soap_center_gradient{soap_vector_gradients[center]};
+            expansions_coefficients_gradient[ii_pair]};
+        auto & soap_center_gradient{soap_vector_gradients[ii_pair]};
 
         for (const auto & el : grad_center_coefficients) {
           element_type[0] = el.first[0];
@@ -995,11 +995,11 @@ namespace rascal {
     rep_expansion.compute(manager);
 
     auto && expansions_coefficients{
-        manager->template get_property_ref<PropExp_t>(
-            rep_expansion.get_name())};
+        manager->template get_property_ref<PropExp_t>(rep_expansion.get_name(),
+                                                      true, true)};
 
-    auto && soap_vectors{
-        manager->template get_property_ref<Prop_t>(this->get_name())};
+    auto && soap_vectors{manager->template get_property_ref<Prop_t>(
+        this->get_name(), true, true)};
 
     // if the representation has already been computed for the current
     // structure then do nothing
@@ -1272,8 +1272,9 @@ namespace rascal {
       soap_vector.resize(pair_list, n_row, n_col);
 
       if (this->compute_gradients) {
+        auto ii_pair = center.get_atom_ii();
         // The gradient wrt center is nonzero for all species pairs
-        soap_vector_gradients[center].resize(
+        soap_vector_gradients[ii_pair].resize(
             pair_list, n_spatial_dimensions * n_row, n_col, 0.);
 
         // TODO(max,felix) needs work
@@ -1343,9 +1344,10 @@ namespace rascal {
       soap_vector.resize(keys, n_row, n_col, 0);
 
       if (this->compute_gradients) {
+        auto ii_pair = center.get_atom_ii();
         // The gradient wrt center is nonzero for all species pairs
-        soap_vector_gradients[center].resize(keys, n_spatial_dimensions * n_row,
-                                             n_col, 0);
+        soap_vector_gradients[ii_pair].resize(
+            keys, n_spatial_dimensions * n_row, n_col, 0);
         for (auto neigh : center) {
           soap_vector_gradients[neigh].resize(
               keys, n_spatial_dimensions * n_row, n_col, 0);

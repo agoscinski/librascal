@@ -80,13 +80,11 @@ namespace rascal {
         size_t ii_A{0};
         for (auto & manager_a : managers_a) {
           size_t ii_B{0};
-          auto && propA{
-              manager_a->template get_property_ref<Property_t>(
-                  representation_name, true)};
+          auto && propA{manager_a->template get_property_ref<Property_t>(
+              representation_name, true, true)};
           for (auto & manager_b : managers_b) {
-            auto && propB{
-                manager_b->template get_property_ref<Property_t>(
-                    representation_name, true)};
+            auto && propB{manager_b->template get_property_ref<Property_t>(
+                representation_name, true, true)};
 
             kernel(ii_A, ii_B) =
                 propA.dot(propB).unaryExpr(integer_power).mean();
@@ -98,7 +96,8 @@ namespace rascal {
       }
 
       /**
-       * Compute the kernel between 2 set of structures for a given representation specified by the name.
+       * Compute the kernel between 2 set of structures for a given
+       * representation specified by the name.
        *
        * @param managers_a a ManagerCollection or similar collection of
        * structure managers
@@ -128,13 +127,11 @@ namespace rascal {
         size_t ii_A{0};
         for (auto & manager_a : managers_a) {
           size_t ii_B{0};
-          auto && propA{
-              manager_a->template get_property_ref<Property_t>(
-                  representation_name, true)};
+          auto && propA{manager_a->template get_property_ref<Property_t>(
+              representation_name, true, true)};
           for (auto & manager_b : managers_b) {
-            auto && propB{
-                manager_b->template get_property_ref<Property_t>(
-                    representation_name, true)};
+            auto && propB{manager_b->template get_property_ref<Property_t>(
+                representation_name, true, true)};
 
             kernel.block(ii_A, ii_B, manager_a->size(), manager_b->size()) =
                 propA.dot(propB).unaryExpr(integer_power);
@@ -190,9 +187,9 @@ namespace rascal {
       }
     }
 
-
     /*
-     * The root compute kernel function. It computes the kernel between 2 set of structures for a given representation specified by the calculator.
+     * The root compute kernel function. It computes the kernel between 2 set of
+     * structures for a given representation specified by the calculator.
      *
      * @param calculator the calculator which has been used to calculate
      * the representation on the two managers

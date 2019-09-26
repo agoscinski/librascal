@@ -205,7 +205,7 @@ namespace rascal {
     using ClusterRef_t = typename StructureManager::template ClusterRef<Order>;
 
     explicit CalculatorSphericalCovariants(const Hypers_t & hyper)
-        : rep_expansion{hyper} {
+        : CalculatorBase{}, rep_expansion{hyper} {
       this->set_default_prefix("spherical_covariants_");
       this->set_hyperparameters(hyper);
     }
@@ -425,11 +425,11 @@ namespace rascal {
     // Compute the spherical expansions of the current structure
     rep_expansion.compute(manager);
     auto && expansions_coefficients{
-        manager->template get_property_ref<PropExp_t>(
-            rep_expansion.get_name())};
+        manager->template get_property_ref<PropExp_t>(rep_expansion.get_name(),
+                                                      true, true)};
 
-    auto && soap_vectors{
-        manager->template get_property_ref<Prop_t>(this->get_name())};
+    auto && soap_vectors{manager->template get_property_ref<Prop_t>(
+        this->get_name(), true, true)};
 
     // if the representation has already been computed for the current
     // structure then do nothing

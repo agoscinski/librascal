@@ -140,7 +140,6 @@ namespace rascal {
    * provides the ManagerImplementation for the property.
    */
 
-  //TODO(alex) add full neighbour list into tests and adaptor filter when ready
   template <class StackFixture>
   struct AtomPropertyFixture : StackFixture {
     using Parent = StackFixture;
@@ -338,7 +337,6 @@ namespace rascal {
                 AdaptorHalfListStackFixture<ANLWithGhosts_SMC_StackFixture>>>>>;
     using type = pack_into_list<tuple>::type;
   };
-
 }  // namespace rascal
 
 #endif  // TESTS_TEST_PROPERTIES_HH_

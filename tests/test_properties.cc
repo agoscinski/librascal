@@ -28,7 +28,6 @@
  */
 
 #include "test_properties.hh"
-#include "structure_managers/adaptor_strict.hh"
 
 namespace rascal {
   // TODO(felix) TODO(alex) test dynamic sized Property completely
@@ -451,7 +450,7 @@ namespace rascal {
    */
   BOOST_FIXTURE_TEST_CASE_TEMPLATE(
       atom_vector_property_access_with_triple_tests, Fix,
-     triple_property_fixtures, Fix) {
+      triple_property_fixtures, Fix) {
     bool verbose{false};
     if (verbose) {
       std::cout << ">> Test for manager ";
@@ -563,169 +562,6 @@ namespace rascal {
     }
   }
 
-  BOOST_FIXTURE_TEST_CASE_TEMPLATE(create_and_get_property_tests, Fix,
-                                   atom_vector_property_fixtures, Fix) {
-    bool verbose{false};
-    auto manager{Fix::manager};
-    if (verbose) {
-      std::cout << ">> Test create_and_get_property_test for manager ";
-      std::cout << manager->get_name();
-      std::cout << " starts now." << std::endl;
-    }
-
-    using AtomVectorProperty_t = typename Fix::AtomScalarProperty_t;//<double, 1, 3, 1>;
-    Fix::manager->template create_property<AtomVectorProperty_t >("test");
-    std::shared_ptr<AtomVectorProperty_t > ptr{manager->template get_property_ptr<AtomVectorProperty_t >("test", true)};
-    AtomVectorProperty_t  & ref{manager->template get_property_ref<AtomVectorProperty_t  >("test", true)};
-    
-    if (verbose) {
-      std::cout << ">> Fill property by pointer." << std::endl;
-    }
-    ptr.get()->resize(false);
-    size_t counter{0};
-    for (auto atom : manager) {
-      ptr.get()->operator[](atom) = counter;
-      counter++;
-    }
-
-    if (verbose) {
-      std::cout << ">> Check property by ref." << std::endl;
-    }
-    counter = 0;
-    for (auto atom : manager) {
-      BOOST_CHECK_EQUAL(ref.operator[](atom), counter);
-      counter++;
-    }
-
-    if (verbose) {
-      std::cout << ">> Test create_and_get_property_test for manager ";
-      std::cout << manager->get_name();
-      std::cout << " finished." << std::endl;
-    }
-  }
-  
-  /* Fixtures with the HasDistance flag on, stacking on top of AS<SMC>. The stack is important, because the right manager has to be chosen to get the distance type
-   */
-  using has_distance_and_dir_vec_ac_smc_stack_fixtures = boost::mpl::list<
-            AdaptorMaxOrderStackFixture<AdaptorStrictStackFixture<
-              ANLWithGhosts_SMC_StackFixture>>
-                >;
-
-  /* Tests if distance property can be accessed with get_distance function and get_property and if their equal.
-   */
-  BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_distance_test1, Fix, 
-      has_distance_and_dir_vec_ac_smc_stack_fixtures, Fix) {
-    bool verbose{false};
-    auto manager{Fix::manager};
-    if (verbose) {
-      std::cout << ">> Manager used ";
-      std::cout << manager->get_name();
-    }
-    using Distance_t = typename AdaptorStrict<AdaptorNeighbourList<StructureManagerCenters>>::Distance_t;
-    Distance_t & distance_property{
-        manager->template get_property_ref<Distance_t>("distance", true)};
-    for (auto atom : manager) {
-      for (auto pair : atom) {
-        BOOST_CHECK_EQUAL(manager->get_distance(pair),
-            distance_property.operator[](pair));
-      }
-    }
-  }
-  
-  // Fixtures with the AdaptorStrict on the top level of the stack
-  using has_distance_and_dir_vec_ac_on_top_stack_fixtures = boost::mpl::list<
-            AdaptorStrictStackFixture<ANLWithGhosts_SMC_StackFixture>,
-            AdaptorStrictStackFixture<AdaptorHalfListStackFixture<ANLWithGhosts_SMC_StackFixture>>
-                >;
-  BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_distance_ac_on_top_test, Fix, 
-      has_distance_and_dir_vec_ac_on_top_stack_fixtures, Fix) {
-    bool verbose{false};
-    auto manager{Fix::manager};
-    if (verbose) {
-      std::cout << ">> Manager used ";
-      std::cout << manager->get_name();
-    }
-    using Distance_t = typename Fix::Manager_t::Distance_t;
-    Distance_t & distance_property{
-        manager->template get_property_ref<Distance_t>("distance", true)};
-    for (auto atom : manager) {
-      for (auto pair : atom) {
-        BOOST_CHECK_EQUAL(manager->get_distance(pair),
-            distance_property.operator[](pair));
-      }
-    }
-  }
-
-  BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_direction_vector_test, Fix, 
-      has_distance_and_dir_vec_ac_smc_stack_fixtures , Fix) {
-    bool verbose{false};
-    auto manager{Fix::manager};
-    if (verbose) {
-      std::cout << ">> Manager used ";
-      std::cout << manager->get_name();
-    }
-    using DirectionVector_t = typename AdaptorStrict<AdaptorNeighbourList<StructureManagerCenters>>::DirectionVector_t;
-    DirectionVector_t & dir_vec_property{
-        manager->template get_property_ref<DirectionVector_t>("dir_vec", true)};
-    for (auto atom : manager) {
-      for (auto pair : atom) {
-        BOOST_CHECK_LE((manager->get_direction_vector(pair)-
-            dir_vec_property.operator[](pair)).norm(), tol * 100);
-      }
-    }
-  }
-
-  BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_direction_vector_ac_on_top_test, Fix, 
-      has_distance_and_dir_vec_ac_on_top_stack_fixtures, Fix) {
-    bool verbose{false};
-    auto manager{Fix::manager};
-    if (verbose) {
-      std::cout << ">> get_distance_test for manager ";
-      std::cout << manager->get_name();
-      std::cout << " starts now." << std::endl;
-    }
-    using DirectionVector_t = typename Fix::Manager_t::DirectionVector_t;
-    DirectionVector_t & dir_vec_property{
-        manager->template get_property_ref<DirectionVector_t>("dir_vec", true)};
-    for (auto atom : manager) {
-      for (auto pair : atom) {
-        BOOST_CHECK_LE((manager->get_direction_vector(pair)-
-            dir_vec_property.operator[](pair)).norm(), tol * 100);
-      }
-    }
-    if (verbose) {
-      std::cout << " finished." << std::endl;
-    }
-  }
-
-
-  // Fixtures with the HasDistance and HasDirectionVector flag off.
-  using has_not_distance_and_dir_vec_stack_fixtures = boost::mpl::list<
-            ANLWithGhosts_SMC_StackFixture,
-            ANLWithoutGhosts_SMC_StackFixture,
-            AdaptorHalfListStackFixture<ANLWithGhosts_SMC_StackFixture>,
-            AdaptorHalfListStackFixture<ANLWithoutGhosts_SMC_StackFixture>,
-            AdaptorMaxOrderStackFixture<ANLWithGhosts_SMC_StackFixture>
-                >;
-  // Tests if stacks without flag HasDistances throw an error when invoked.
-  BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_distance_throws_error_test, Fix,
-      has_not_distance_and_dir_vec_stack_fixtures, Fix) {
-    size_t pair_indices[] = {0};
-    Eigen::Map<const Eigen::Matrix<size_t, 1, 1>> pair_indices_map(pair_indices);
-    ClusterRefKey<2,0> pair{ClusterRefKey<2,0>({0,1},pair_indices_map)};
-    BOOST_CHECK_THROW(Fix::manager->get_distance(pair), std::exception);
-  }
-
-  // Tests if stacks without flag HasDirectionVector throw an error when invoked.
-  BOOST_FIXTURE_TEST_CASE_TEMPLATE(get_direction_vector_throw_serror_test, Fix,
-      has_not_distance_and_dir_vec_stack_fixtures, Fix) {
-    size_t pair_indices[] = {0};
-    Eigen::Map<const Eigen::Matrix<size_t, 1, 1>> pair_indices_map(pair_indices);
-    ClusterRefKey<2,0> pair{ClusterRefKey<2,0>({0,1},pair_indices_map)};
-    BOOST_CHECK_THROW(Fix::manager->get_direction_vector(pair), std::exception);
-  }
-
-
   /* ---------------------------------------------------------------------- */
   /**
    * test, if metadata can be assigned to properties
@@ -774,11 +610,11 @@ namespace rascal {
     Fix::atom_dynamic_vector_unit_property.resize();
     Fix::atom_dynamic_vector_property.resize();
 
-    BOOST_CHECK_THROW(Fix::AtomVectorProperty_t ::check_compatibility(
+    BOOST_CHECK_THROW(Fix::AtomVectorProperty_t::check_compatibility(
                           Fix::atom_dynamic_vector_unit_property),
                       std::runtime_error);
 
-    BOOST_CHECK_NO_THROW(Fix::AtomVectorProperty_t ::check_compatibility(
+    BOOST_CHECK_NO_THROW(Fix::AtomVectorProperty_t::check_compatibility(
         Fix::atom_vector_property));
 
     int pair_property_counter{};
@@ -942,11 +778,7 @@ namespace rascal {
    * filled and that the data can be accessed consistently.
    */
 
-  using Fixtures = boost::mpl::list<BlockSparsePropertyFixture<1>,
-                                    // the order == 2 case test the access of
-                                    // the property of order 2 can be properly
-                                    // accessed by a clusterRef of order 1
-                                    BlockSparsePropertyFixture<2>>;
+  using Fixtures = boost::mpl::list<BlockSparsePropertyFixture<1>>;
 
   BOOST_FIXTURE_TEST_CASE_TEMPLATE(fill_test_simple, Fix, Fixtures, Fix) {
     auto & managers = Fix::managers;
@@ -983,7 +815,6 @@ namespace rascal {
       for (auto center : manager) {
         if (verbose)
           std::cout << "center: " << i_center << std::endl;
-
         auto data = sparse_features[i_manager].get_dense_row(center);
         size_t key_id{0};
         double error1{0};

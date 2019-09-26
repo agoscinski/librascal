@@ -48,13 +48,18 @@ namespace rascal {
    */
   template <class ManagerImplementation>
   struct StructureManager_traits<AdaptorStrict<ManagerImplementation>> {
+    using parent_traits = StructureManager_traits<ManagerImplementation>;
     constexpr static AdaptorTraits::Strict Strict{AdaptorTraits::Strict::yes};
     constexpr static bool HasDistances{true};
     constexpr static bool HasDirectionVectors{true};
-    constexpr static int Dim{ManagerImplementation::traits::Dim};
-    constexpr static size_t MaxOrder{ManagerImplementation::traits::MaxOrder};
-    using LayerByOrder = typename LayerIncreaser<
-        MaxOrder, typename ManagerImplementation::traits::LayerByOrder>::type;
+    constexpr static bool HasCenterPair{parent_traits::HasCenterPair};
+    constexpr static int Dim{parent_traits::Dim};
+    constexpr static size_t MaxOrder{parent_traits::MaxOrder};
+    constexpr static int StackLevel{parent_traits::StackLevel + 1};
+    using LayerByOrder =
+        typename LayerIncreaser<MaxOrder,
+                                typename parent_traits::LayerByOrder>::type;
+    typedef ManagerImplementation PreviousManager_t;
   };
 
   /**
@@ -75,9 +80,11 @@ namespace rascal {
             AdaptorStrict<ManagerImplementation>> {
    public:
     using Manager_t = AdaptorStrict<ManagerImplementation>;
+    using ManagerImplementation_t = ManagerImplementation;
     using Parent = StructureManager<Manager_t>;
     using ImplementationPtr_t = std::shared_ptr<ManagerImplementation>;
     using traits = StructureManager_traits<AdaptorStrict>;
+    using PreviousManager_t = typename traits::PreviousManager_t;
     using AtomRef_t = typename ManagerImplementation::AtomRef_t;
     using Vector_ref = typename Parent::Vector_ref;
     using Hypers_t = typename Parent::Hypers_t;
@@ -101,9 +108,6 @@ namespace rascal {
      * this parameter will be skipped
      */
     AdaptorStrict(ImplementationPtr_t manager, double cutoff);
-
-    AdaptorStrict(ImplementationPtr_t manager, std::tuple<double> tp)
-        : AdaptorStrict(manager, std::get<0>(tp)) {}
 
     AdaptorStrict(ImplementationPtr_t manager, const Hypers_t & adaptor_hypers)
         : AdaptorStrict(manager,
@@ -132,9 +136,10 @@ namespace rascal {
     void update(Args &&... arguments);
 
     //! returns the (strict) cutoff for the adaptor
-    inline const double & get_cutoff() const { return this->cutoff; }
+    inline double get_cutoff() const { return this->cutoff; }
 
     inline size_t get_nb_clusters(int order) const {
+      assert(order > 0);
       return this->atom_tag_list[order - 1].size();
     }
 
@@ -165,7 +170,8 @@ namespace rascal {
       return this->atom_tag_list[0][index];
     }
 
-    /* Since the cluster indices of order 1 are only copied in this filter we
+    /**
+     * Since the cluster indices of order 1 are only copied in this filter we
      * can safely use the before-computed list from the previous manager,
      * since they are still valid for access.
      */
@@ -232,7 +238,7 @@ namespace rascal {
     }
 
     //! Get the manager used to build the instance
-    ImplementationPtr_t get_previous_manager() {
+    ImplementationPtr_t get_previous_manager_impl() {
       return this->manager->get_shared_ptr();
     }
 
@@ -398,9 +404,10 @@ namespace rascal {
     }
 
     //! initialise the distance storage
-    this->distance = this->template get_property_ptr<Distance_t>("distance");
-    this->dir_vec =
-        this->template get_property_ptr<DirectionVector_t>("dir_vec");
+    this->distance =
+        this->template get_property_ptr<Distance_t>("distance", false, true);
+    this->dir_vec = this->template get_property_ptr<DirectionVector_t>(
+        "dir_vec", false, true);
 
     this->distance->clear();
     this->dir_vec->clear();
@@ -410,6 +417,9 @@ namespace rascal {
     auto & pair_cluster_indices{std::get<1>(this->cluster_indices_container)};
 
     size_t pair_counter{0};
+
+    double rc2{this->cutoff * this->cutoff};
+
     // depending on the underlying neighbourlist, the proxy `.with_ghosts()` is
     // either actually with ghosts, or only returns the number of centers.
     for (auto atom : this->manager.get()->with_ghosts()) {
@@ -423,15 +433,18 @@ namespace rascal {
       indices.template head<AtomLayer>() = atom.get_cluster_indices();
       indices(AtomLayer) = indices(AtomLayer - 1);
       atom_cluster_indices.push_back(indices);
-      double rc2{this->cutoff * this->cutoff};
-      for (auto pair : atom) {
+      for (auto pair : atom.with_self_pair()) {
         auto vec_ij{pair.get_position() - atom.get_position()};
         double distance2{(vec_ij).squaredNorm()};
         if (distance2 <= rc2) {
           this->add_atom(pair);
           double distance{std::sqrt(distance2)};
+          if (distance2 > 0.) {
+            this->dir_vec->push_back((vec_ij.array() / distance).matrix());
+          } else {
+            this->dir_vec->push_back((vec_ij.array()).matrix());
+          }
 
-          this->dir_vec->push_back((vec_ij.array() / distance).matrix());
           this->distance->push_back(distance);
 
           Eigen::Matrix<size_t, PairLayer + 1, 1> indices_pair;
