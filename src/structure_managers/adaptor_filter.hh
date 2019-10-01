@@ -208,40 +208,6 @@ namespace rascal {
       return this->manager->get_size_with_ghosts();
     }
 
-    //! returns the distance between atoms in a given pair
-    template <size_t Order, size_t Layer,
-              bool DummyHasDistances = traits::HasDistances>
-    inline const std::enable_if_t<DummyHasDistances, double> &
-    get_distance(const ClusterRefKey<Order, Layer> & pair) const {
-      static_assert(DummyHasDistances == traits::HasDistances,
-                    "SFINAE, do not specify");
-      return this->manager->get_distance(pair);
-    }
-
-    /**
-     * return pair distance
-     */
-    template <size_t Order, size_t Layer,
-              bool HasDistances = traits::HasDistances>
-    inline std::enable_if_t<HasDistances, double &>
-    get_distance(const ClusterRefKey<Order, Layer> & pair) const {
-      static_assert(HasDistances == traits::HasDistances,
-                    "SFINAE don't touch parameter!");
-      return this->manager.get_distance(pair);
-    }
-
-    /**
-     * return direction vector
-     */
-    template <size_t Order, size_t Layer,
-              bool HasDistances = traits::HasDistances>
-    inline std::enable_if_t<HasDistances, Vector_ref>
-    get_direction_vector(const ClusterRefKey<Order, Layer> & pair) const {
-      static_assert(HasDistances == traits::HasDistances,
-                    "SFINAE don't touch parameter!");
-      return this->manager.get_direction_vector(pair);
-    }
-
     //! get atom_tag of index-th neighbour of this cluster
     template <size_t Order, size_t Layer>
     inline int
