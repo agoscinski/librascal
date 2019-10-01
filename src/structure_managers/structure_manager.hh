@@ -345,16 +345,8 @@ namespace rascal {
     }
 
     /**
-     * Attach a property to a StructureManager. A given calculated property is
-     * only reasonable if connected with a structure. It is also connected with
-     * a sanity check so that the naming of attached properties is unique. If a
-     * property with the desired `name` already exists, a runtime error is
-     * thrown.
-     */
-
-    /**
      * Helper function to check if a property with the specifier `name` has
-     * already been attached.
+     * already been attached in the manager layer which invoked this function.
      */
     inline bool has_layer_property(const std::string & name) const {
       return not(this->properties.find(name) == this->properties.end());
@@ -362,10 +354,35 @@ namespace rascal {
 
     /**
      * Helper function to check if a property with the specifier `name` has
-     * already been attached.
+     * already been attached somewhere in the manager stack. Here an example how
+     * it works
+     *
+     * Property request forwarding in the case property exists
+     * AdaptorImpl2 -> has not prop1
+     *       | forwards request to lower stack
+     *       v
+     * AdaptorImpl1 has prop1 -> return true
+     * RootImpl
+     *
+     *
+     * Property request forwarding in the case property does not exist
+     * AdaptorImpl2
+     *       | forwards request to lower stack
+     *       v
+     * AdaptorImpl1
+     *       | forwards request to lower stack
+     *       v
+     * RootImpl -> return false
      */
-    // If this implementation is not root, look if the previous manager has
-    // property
+    template <bool IsRoot = IsRootImplementation,
+              std::enable_if_t<IsRoot, int> = 0>
+    inline bool has_stack_property(const std::string & name) {
+      if (this->has_layer_property(name)) {
+        return true;
+      }
+      return false;
+    }
+
     template <bool IsRoot = IsRootImplementation,
               std::enable_if_t<not(IsRoot), int> = 0>
     inline bool has_stack_property(const std::string & name) {
@@ -375,13 +392,25 @@ namespace rascal {
       return this->get_previous_manager()->has_layer_property(name);
     }
 
+    /**
+     * Attach a property to a StructureManager. It is also connected with
+     * a sanity check so that the naming of attached properties is unique. If a
+     * property with the desired `name` already exists, a runtime error is
+     * thrown.
+     *
+     * @tparam UserProperty_t the user property type
+     * @param name the name of the property to create.
+     *
+     * @throw runtime_error if property with name does already exist
+     *
+     */
     template <typename UserProperty_t>
     void create_property(const std::string & name) {
       if (this->has_stack_property(name)) {
         std::stringstream error{};
         error << "A property of name '" << name
               << "' has already been registered"
-              << " in manager '" << name << "'";  // TODO(alex) fix name
+              << " in manager '" << this->get_name() << "'";
         throw std::runtime_error(error.str());
       }
       auto property{std::make_shared<UserProperty_t>(this->implementation())};
@@ -398,7 +427,7 @@ namespace rascal {
      * propertys
      *
      * @tparam UserProperty_t the user property type
-     * @throw runtime_error if property with name does not exists
+     * @throw runtime_error if property with name does not exist
      * @return true if the type matches otherwise false
      */
     template <typename UserProperty_t>
@@ -406,7 +435,7 @@ namespace rascal {
       if (not(this->has_stack_property(name))) {
         std::stringstream error{};
         error << "A property of name '" << name << "' does not exist"
-              << " in manager '" << name << "'";  // TODO(alex) fix name
+              << " in manager '" << this->get_name() << "'";
         throw std::runtime_error(error.str());
       }
       auto && property = this->get_property_ptr(name, false);
@@ -419,16 +448,11 @@ namespace rascal {
     }
 
     /**
-     * Throws an error if property type given from user does not match actual
-     * property type.
-     * 
-     * It is
-     * compared if each template parameter within the UserProperty is in
-     * agreement with the stored property of the given name.
+     * Throws an error if property type given from user does not match the type
+     * of the property in the argument. It is comparede if template parameter
+     * within the UserProperty is in agreement with the stored property of the
+     * given name.
      *
-     * TODO(all) Is the try and catch need here ? it will throw in the
-     * respective check_compatibility and we get the full stack with the
-     * debugger.
      * @throw runtime_error if property with name does not exists
      * @return void
      */
@@ -451,78 +475,19 @@ namespace rascal {
     }
 
     /**
-     * Returns a typed property of the given name from the top level manager. If
-     * this property does not exist in the top level manager, it is created.
-     *
-     * @tparam UserProperty_t full type of the property to return.
-     *
-     * @param name Name of the property to get.ß
-     * @param validate_property Property is validated if flag is on. It is
-     * compared if each template parameter within the UserProperty is in
-     * agreement with the stored property of the given name.
-     *
-     * @throw runtime_error If validate_property is on and UserProperty_t is not
-     * compatible with property type of the given name.
-     */
-    // template <typename UserProperty_t>
-    // std::shared_ptr<UserProperty_t> force_get_property_ptr_from_top(const
-    // std::string & name, bool validate_property) {
-    //  if (not(this->has_layer_property(name))) {
-    //    this->create_property<UserProperty_t>(name);
-    //  }
-    //  return this->get_property_ptr<UserProperty_t>(name, validate_property);
-
-    // template<template <typename> typename PartialProperty_t, typename
-    // Manager_t> decltype(auto) force_get_property_ptr_from_top(const
-    // std::string & name, bool validate_property) {
-    //  using UserProperty_t = PartialProperty_t<Manager_t>;
-    //  return this->force_get_property_ptr_from_top<UserProperty_t>(name,
-    //  validate_property);
-    //}
-
-    // template <typename UserProperty_t>
-    // UserProperty_t & force_get_property_ref_from_top(const std::string &
-    // name, bool validate_property) {
-    //  return *this->force_get_property_ptr_from_top<UserProperty_t>(name,
-    //  validate_property);
-    //}
-
-    // template<template <typename> typename PartialProperty_t, typename
-    // Manager_t> decltype(auto) force_get_property_ref_from_top(const
-    // std::string & name, bool validate_property) {
-    //  using UserProperty_t = PartialProperty_t<Manager_t>;
-    //  return this->force_get_property_ref_from_top<UserProperty_t>(name,
-    //  validate_property);
-    //}
-
-    /**
-     * Returns
-     *
-     * @tparam UserProperty_t full type of the property to return.
-     *
-     * @param name Name of the property to get.ß
-     * @param validate_property Property is validated if flag is on. It is
-     * compared if each template parameter within the UserProperty is in
-     * agreement with the stored property of the given name.
-     *
-     * @throw runtime_error If validate_property is on and UserProperty_t is not
-     * compatible with property type of the given name.
-     * @throw runtime_error If property has not been found in manager stack
-     */
-
-    /**
      * Returns a typed property of the given name.
      *
      * @tparam UserProperty_t full type of the property to return.
      *
-     * @param name The name of the property to get.
-     * @param validate_property property is validated if this parameter is true
-     * It is compared if each template parameter within the UserProperty is in
-     * agreement with the stored property of the given name.
-     * @param force_creation
+     * @param name the name of the property to get.
+     * @param validate_property property is validated if this parameter is true,
+     * see validate_property_t
+     * @param force_creation if the property does not exist in the manager stack
+     * the property is created and returned. The validation step is skipped in
+     * this case.
      *
      * @throw runtime_error If validate_property is true and UserProperty_t is
-     * not compatible with property type of the given name.
+     * not compatible with the property with the given name.
      * @throw runtime_error If force_creation is false and property has not been
      * found in manager stack.
      */
@@ -707,7 +672,7 @@ namespace rascal {
       }
       std::stringstream error{};
       error << "A property of name '" << name << "' does not exist"
-            << " in manager '" << name << "'";  // TODO(alex) fix name
+            << " in manager '" << this->get_name() << "'";
       throw std::runtime_error(error.str());
     }
 
@@ -718,7 +683,7 @@ namespace rascal {
      * @tparam UserProperty_t full type of the property to return.
      *
      * @param name the name of the property.
-     * @param validate_property the property is validated if flag is true. 
+     * @param validate_property the property is validated if flag is true.
      *
      * It is
      * compared if each template parameter within the UserProperty is in

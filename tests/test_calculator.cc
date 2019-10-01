@@ -337,9 +337,8 @@ namespace rascal {
         representations.emplace_back(representation_hypers);
         representations.back().compute(manager);
         auto property_name{representations.back().get_name()};
-        auto && property{
-            manager->template get_property_ref<Property_t>(
-                property_name, true, false)};
+        auto && property{manager->template get_property_ref<Property_t>(
+            property_name, true, false)};
         auto test_representation = property.get_dense_feature_matrix();
 
         BOOST_CHECK_EQUAL(ref_representation.size(),
