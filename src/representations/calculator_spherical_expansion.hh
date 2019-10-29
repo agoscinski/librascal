@@ -30,27 +30,28 @@
 #ifndef SRC_REPRESENTATIONS_CALCULATOR_SPHERICAL_EXPANSION_HH_
 #define SRC_REPRESENTATIONS_CALCULATOR_SPHERICAL_EXPANSION_HH_
 
-#include "representations/calculator_base.hh"
-#include "representations/cutoff_functions.hh"
-#include "structure_managers/structure_manager.hh"
-#include "rascal_utility.hh"
-#include "math/math_utils.hh"
-#include "math/spherical_harmonics.hh"
-#include "math/hyp1f1.hh"
 #include "math/bessel.hh"
 #include "math/gauss_legendre.hh"
+#include "math/hyp1f1.hh"
+#include "math/math_utils.hh"
+#include "math/spherical_harmonics.hh"
+#include "rascal_utility.hh"
+#include "representations/calculator_base.hh"
+#include "representations/cutoff_functions.hh"
 #include "structure_managers/property_block_sparse.hh"
+#include "structure_managers/structure_manager.hh"
+
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <memory>
 #include <exception>
+#include <memory>
 #include <sstream>
-#include <vector>
-#include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
 #include <unordered_set>
+#include <vector>
 
 namespace rascal {
 
@@ -155,14 +156,14 @@ namespace rascal {
 
     //! Utility to make shared pointer and cast to base class
     template <AtomicSmearingType Type, class Hypers>
-    decltype(auto) make_atomic_smearing(const Hypers & sigma_hypers) {
+    auto make_atomic_smearing(const Hypers & sigma_hypers) {
       return std::static_pointer_cast<AtomicSmearingSpecificationBase>(
           std::make_shared<AtomicSmearingSpecification<Type>>(sigma_hypers));
     }
 
     //! Utility to cast base to child class
     template <AtomicSmearingType Type>
-    decltype(auto) downcast_atomic_smearing(
+    auto downcast_atomic_smearing(
         const std::shared_ptr<AtomicSmearingSpecificationBase> &
             atomic_smearing) {
       return std::static_pointer_cast<AtomicSmearingSpecification<Type>>(
@@ -299,7 +300,7 @@ namespace rascal {
         // define the type of smearing to use
         auto smearing_hypers = hypers.at("gaussian_density").get<json>();
         auto smearing_type = smearing_hypers.at("type").get<std::string>();
-        if (smearing_type.compare("Constant") == 0) {
+        if (smearing_type == "Constant") {
           this->atomic_smearing_type = AtomicSmearingType::Constant;
           this->atomic_smearing =
               make_atomic_smearing<AtomicSmearingType::Constant>(
@@ -536,16 +537,16 @@ namespace rascal {
             unitary * eigs_invsqrt.matrix().asDiagonal() * unitary.adjoint();
       }
 
-      inline Matrix_t get_radial_orthonormalization_matrix() const {
+      Matrix_t get_radial_orthonormalization_matrix() const {
         return this->radial_norm_factors.asDiagonal() *
                this->radial_ortho_matrix;
       }
 
-      inline Matrix_Ref get_radial_integral_neighbour() const {
+      Matrix_Ref get_radial_integral_neighbour() const {
         return Matrix_Ref(this->radial_integral_neighbour);
       }
 
-      inline Matrix_Ref get_radial_neighbour_derivative() const {
+      Matrix_Ref get_radial_neighbour_derivative() const {
         return Matrix_Ref(this->radial_neighbour_derivative);
       }
 
@@ -644,7 +645,7 @@ namespace rascal {
         // define the type of smearing to use
         auto smearing_hypers = hypers.at("gaussian_density").get<json>();
         auto smearing_type = smearing_hypers.at("type").get<std::string>();
-        if (smearing_type.compare("Constant") == 0) {
+        if (smearing_type == "Constant") {
           this->atomic_smearing_type = AtomicSmearingType::Constant;
           this->atomic_smearing =
               make_atomic_smearing<AtomicSmearingType::Constant>(
@@ -770,13 +771,13 @@ namespace rascal {
   }  // namespace internal
 
   template <internal::RadialBasisType Type, class Hypers>
-  decltype(auto) make_radial_integral(const Hypers & basis_hypers) {
+  auto make_radial_integral(const Hypers & basis_hypers) {
     return std::static_pointer_cast<internal::RadialContributionBase>(
         std::make_shared<internal::RadialContribution<Type>>(basis_hypers));
   }
 
   template <internal::RadialBasisType Type>
-  decltype(auto) downcast_radial_integral(
+  auto downcast_radial_integral(
       const std::shared_ptr<internal::RadialContributionBase> &
           radial_integral) {
     return std::static_pointer_cast<internal::RadialContribution<Type>>(
@@ -860,14 +861,14 @@ namespace rascal {
       // create the class that will compute the radial terms of the
       // expansion. the atomic smearing is an integral part of the
       // radial contribution
-      if (radial_contribution_type.compare("GTO") == 0) {
+      if (radial_contribution_type == "GTO") {
         auto rc_shared = std::make_shared<
             internal::RadialContribution<RadialBasisType::GTO>>(hypers);
         this->atomic_smearing_type = rc_shared->atomic_smearing_type;
         this->radial_integral = rc_shared;
         this->radial_integral_type = RadialBasisType::GTO;
 
-      } else if (radial_contribution_type.compare("DVR") == 0) {
+      } else if (radial_contribution_type == "DVR") {
         auto rc_shared = std::make_shared<
             internal::RadialContribution<RadialBasisType::DVR>>(hypers);
         this->atomic_smearing_type = rc_shared->atomic_smearing_type;
@@ -884,11 +885,11 @@ namespace rascal {
       auto fc_type = fc_hypers.at("type").get<std::string>();
       this->interaction_cutoff = fc_hypers.at("cutoff").at("value");
       this->cutoff_smooth_width = fc_hypers.at("smooth_width").at("value");
-      if (fc_type.compare("ShiftedCosine") == 0) {
+      if (fc_type == "ShiftedCosine") {
         this->cutoff_function_type = CutoffFunctionType::ShiftedCosine;
         this->cutoff_function =
             make_cutoff_function<CutoffFunctionType::ShiftedCosine>(fc_hypers);
-      } else if (fc_type.compare("RadialScaling") == 0) {
+      } else if (fc_type == "RadialScaling") {
         this->cutoff_function_type = CutoffFunctionType::RadialScaling;
         this->cutoff_function =
             make_cutoff_function<CutoffFunctionType::RadialScaling>(fc_hypers);
@@ -963,7 +964,7 @@ namespace rascal {
         internal::AtomicSmearingType SmearingType, class StructureManager,
         std::enable_if_t<internal::is_proper_iterator<StructureManager>::value,
                          int> = 0>
-    inline void compute_loop(StructureManager & managers) {
+    void compute_loop(StructureManager & managers) {
       for (auto & manager : managers) {
         this->compute_impl<FcType, RadialType, SmearingType>(manager);
       }
@@ -976,7 +977,7 @@ namespace rascal {
               std::enable_if_t<
                   not(internal::is_proper_iterator<StructureManager>::value),
                   int> = 0>
-    inline void compute_loop(StructureManager & manager) {
+    void compute_loop(StructureManager & manager) {
       this->compute_impl<FcType, RadialType, SmearingType>(manager);
     }
 
@@ -984,7 +985,7 @@ namespace rascal {
     template <internal::CutoffFunctionType FcType,
               internal::RadialBasisType RadialType,
               internal::AtomicSmearingType SmearingType, class StructureManager>
-    inline void compute_impl(std::shared_ptr<StructureManager> manager);
+    void compute_impl(std::shared_ptr<StructureManager> manager);
 
    protected:
     double interaction_cutoff{};

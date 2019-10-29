@@ -31,21 +31,22 @@
 #ifndef SRC_REPRESENTATIONS_CALCULATOR_SPHERICAL_COVARIANTS_HH_
 #define SRC_REPRESENTATIONS_CALCULATOR_SPHERICAL_COVARIANTS_HH_
 
+#include "math/math_utils.hh"
+#include "rascal_utility.hh"
 #include "representations/calculator_base.hh"
 #include "representations/calculator_spherical_expansion.hh"
 #include "representations/calculator_spherical_invariants.hh"
-#include "structure_managers/structure_manager.hh"
 #include "structure_managers/property.hh"
 #include "structure_managers/property_block_sparse.hh"
-#include "rascal_utility.hh"
-#include "math/math_utils.hh"
+#include "structure_managers/structure_manager.hh"
+
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 
 #include <algorithm>
 #include <cmath>
 #include <exception>
 #include <vector>
-#include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
 
 namespace rascal {
 
@@ -168,7 +169,7 @@ namespace rascal {
   }  // namespace internal
 
   template <internal::SphericalCovariantsType Type, class Hypers>
-  decltype(auto) make_spherical_covariants_precompute(const Hypers & hypers) {
+  auto make_spherical_covariants_precompute(const Hypers & hypers) {
     return std::static_pointer_cast<
         internal::SphericalInvariantsPrecomputationBase>(
         std::make_shared<internal::SphericalCovariantsPrecomputation<Type>>(
@@ -176,7 +177,7 @@ namespace rascal {
   }
 
   template <internal::SphericalCovariantsType Type>
-  decltype(auto) downcast_spherical_covariants_precompute(
+  auto downcast_spherical_covariants_precompute(
       const std::shared_ptr<internal::SphericalInvariantsPrecomputationBase> &
           spherical_covariants_precompute) {
     return std::static_pointer_cast<
@@ -239,7 +240,7 @@ namespace rascal {
       this->inversion_symmetry = hypers.at("inversion_symmetry").get<bool>();
       this->normalize = hypers.at("normalize").get<bool>();
 
-      if (this->spherical_covariants_type_str.compare("LambdaSpectrum") == 0) {
+      if (this->spherical_covariants_type_str == "LambdaSpectrum") {
         this->spherical_covariants_type =
             SphericalCovariantsType::LambdaSpectrum;
         this->precompute_spherical_covariants[enumValue(
@@ -381,7 +382,7 @@ namespace rascal {
       internal::Sorted<false> is_not_sorted{};
 
       std::vector<internal::SortedKey<Key_t>> pair_list{};
-      auto & center_type{center.get_atom_type()};
+      auto center_type{center.get_atom_type()};
       Key_t pair_type{center_type, center_type};
       // TODO(felix) optimize this loop
       // the species are not sorted by construction so there are sorted

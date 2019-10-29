@@ -31,20 +31,23 @@
 #ifndef SRC_REPRESENTATIONS_CALCULATOR_SPHERICAL_INVARIANTS_HH_
 #define SRC_REPRESENTATIONS_CALCULATOR_SPHERICAL_INVARIANTS_HH_
 
+#include "math/math_utils.hh"
+#include "rascal_utility.hh"
 #include "representations/calculator_base.hh"
 #include "representations/calculator_spherical_expansion.hh"
-#include "structure_managers/structure_manager.hh"
 #include "structure_managers/property_block_sparse.hh"
-#include "rascal_utility.hh"
-#include "math/math_utils.hh"
+#include "structure_managers/structure_manager.hh"
+
+#include <wigxjpf.h>
+
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 
 #include <algorithm>
 #include <cmath>
 #include <exception>
-#include <vector>
-#include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
 #include <unordered_set>
+#include <vector>
 
 namespace rascal {
 
@@ -193,7 +196,7 @@ namespace rascal {
   }  // namespace internal
 
   template <internal::SphericalInvariantsType Type, class Hypers>
-  decltype(auto) make_spherical_invariants_precompute(const Hypers & hypers) {
+  auto make_spherical_invariants_precompute(const Hypers & hypers) {
     return std::static_pointer_cast<
         internal::SphericalInvariantsPrecomputationBase>(
         std::make_shared<internal::SphericalInvariantsPrecomputation<Type>>(
@@ -201,7 +204,7 @@ namespace rascal {
   }
 
   template <internal::SphericalInvariantsType Type>
-  decltype(auto) downcast_spherical_invariants_precompute(
+  auto downcast_spherical_invariants_precompute(
       const std::shared_ptr<internal::SphericalInvariantsPrecomputationBase> &
           spherical_invariants_precompute) {
     return std::static_pointer_cast<
@@ -271,15 +274,14 @@ namespace rascal {
         this->compute_gradients = false;
       }
 
-      if (this->spherical_invariants_type_str.compare("PowerSpectrum") == 0) {
+      if (this->spherical_invariants_type_str == "PowerSpectrum") {
         this->spherical_invariants_type =
             SphericalInvariantsType::PowerSpectrum;
         this->precompute_spherical_invariants[enumValue(
             SphericalInvariantsType::PowerSpectrum)] =
             make_spherical_invariants_precompute<
                 SphericalInvariantsType::PowerSpectrum>(hypers);
-      } else if (this->spherical_invariants_type_str.compare(
-                     "RadialSpectrum") == 0) {
+      } else if (this->spherical_invariants_type_str == "RadialSpectrum") {
         this->spherical_invariants_type =
             SphericalInvariantsType::RadialSpectrum;
         this->precompute_spherical_invariants[enumValue(
@@ -289,8 +291,7 @@ namespace rascal {
         if (this->max_angular > 0) {
           throw std::logic_error("max_angular should be 0 with RadialSpectrum");
         }
-      } else if (this->spherical_invariants_type_str.compare("BiSpectrum") ==
-                 0) {
+      } else if (this->spherical_invariants_type_str == "BiSpectrum") {
         this->spherical_invariants_type =
             internal::SphericalInvariantsType::BiSpectrum;
         this->precompute_spherical_invariants[enumValue(
@@ -1192,7 +1193,7 @@ namespace rascal {
       internal::Sorted<false> is_not_sorted{};
 
       std::vector<internal::SortedKey<Key_t>> triplet_list{};
-      auto & center_type{center.get_atom_type()};
+      auto center_type{center.get_atom_type()};
       Key_t triplet_type{center_type, center_type, center_type};
       // TODO(felix) optimize this loop
       for (const auto & el1 : coefficients) {
@@ -1240,7 +1241,7 @@ namespace rascal {
       internal::Sorted<true> is_sorted{};
 
       std::vector<internal::SortedKey<Key_t>> pair_list{};
-      auto & center_type{center.get_atom_type()};
+      auto center_type{center.get_atom_type()};
       Key_t pair_type{center_type, center_type};
       // avoid checking the order in pair_type by ensuring it has already been
       // done
